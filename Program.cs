@@ -18,9 +18,6 @@ namespace DynamicPatcher
 
         private static void DllMain()
         {
-#if DEBUG
-            System.Windows.Forms.MessageBox.Show("Attach Me", "Dynamic Patcher");
-#endif
             var patcher = new Patcher();
             string workDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DynamicPatcher");
             patcher.Init(workDir);

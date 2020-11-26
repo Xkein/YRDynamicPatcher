@@ -30,6 +30,12 @@ namespace DynamicPatcher
                 using (JsonTextReader reader = new JsonTextReader(file))
                 {
                     var json = JObject.Load(reader);
+
+                    if (json["show_attach_window"].ToObject<bool>())
+                    {
+                        System.Windows.Forms.MessageBox.Show("Attach Me", "Dynamic Patcher");
+                    }
+
                     compiler.Load(json);
                 }
             }
@@ -113,7 +119,7 @@ namespace DynamicPatcher
                     break;
             }
 
-            Thread.Sleep(100);
+            Thread.Sleep(TimeSpan.FromSeconds(1.0));
 
             var assembly = TryCompile(path);
 
@@ -123,8 +129,11 @@ namespace DynamicPatcher
                 {
                     RemoveAssemblyHook(fileAssembly[path]);
                 }
+                else
+                {
+                    fileAssembly.Add(path, assembly);
+                }
                 ApplyAssembly(assembly);
-                fileAssembly.Add(path, assembly);
             }
             else
             {
@@ -146,6 +155,7 @@ namespace DynamicPatcher
 
                 if (assembly != null)
                 {
+                    fileAssembly.Add(path, assembly);
                     ApplyAssembly(assembly);
                 }
                 else
