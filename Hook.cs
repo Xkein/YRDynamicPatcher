@@ -34,7 +34,7 @@ namespace DynamicPatcher
 	class HookInfo
 	{
 		static readonly int InvalidAddress = 114514;
-		MethodInfo Method { get; set; }
+		public MethodInfo Method { get; private set; }
 		public HookInfo(MethodInfo method)
 		{
 			Method = method;
@@ -82,7 +82,121 @@ namespace DynamicPatcher
 		}
 	}
 
-    
+	class AresHookTransferStation : IDisposable
+	{
+		static readonly byte INIT = ASM.INIT;
+		static readonly byte[] code_call =
+			{
+				0x60, 0x9C, //PUSHAD, PUSHFD
+		        0x68, INIT, INIT, INIT, INIT, //PUSH HookAddress
+		        0x83, 0xEC, 0x04,//SUB ESP, 4
+		        0x8D, 0x44, 0x24, 0x04,//LEA EAX,[ESP + 4]
+		        0x50, //PUSH EAX
+		        0xE8, INIT, INIT, INIT, INIT,  //CALL ProcAddress
+		        0x83, 0xC4, 0x0C, //ADD ESP, 0Ch
+		        0x89, 0x44, 0x24, 0xF8,//MOV ss:[ESP - 8], EAX
+		        0x9D, 0x61, //POPFD, POPAD
+		        0x83, 0x7C, 0x24, 0xD4, 0x00,//CMP ss:[ESP - 2Ch], 0
+		        0x74, 0x04, //JZ .proceed
+		        0xFF, 0x64, 0x24, 0xD4 //JMP ss:[ESP - 2Ch]
+            };
+
+		MemoryHandle memoryHandle;
+		byte[] code_over;
+
+        public HookInfo HookInfo { get; set; }
+
+		public AresHookTransferStation(HookInfo info)
+		{
+			// alloc bigger space
+			memoryHandle = new MemoryHandle(code_call.Length + 0x10 + ASM.Jmp.Length);
+			SetHook(info);
+		}
+
+		IntPtr GetMemory(int size)
+        {
+            if (memoryHandle.Size < size)
+            {
+				memoryHandle = new MemoryHandle(size);
+			}
+
+			return (IntPtr)memoryHandle.Memory;
+		}
+
+		public void SetHook(HookInfo info)
+		{
+			UnHook();
+
+			HookInfo = info;
+			HookAttribute hook = info.GetHookAttribute();
+
+			var callable = (int)info.GetCallable();
+			Logger.Log("ares hook callable: 0x{0:X}", callable);
+
+			int pMemory = (int)GetMemory(code_call.Length + hook.Size + ASM.Jmp.Length);
+			Logger.Log("AresHookTransferStation alloc: 0x{0:X}", pMemory);
+
+			if (pMemory != (int)IntPtr.Zero)
+			{
+				MemoryHelper.Write(pMemory, code_call, code_call.Length);
+
+				MemoryHelper.Write(pMemory + 3, hook.Address);
+				ASMWriter.WriteCall(new JumpStruct(pMemory + 0xF, callable));
+
+				var origin_code_offset = pMemory + code_call.Length;
+
+				if (hook.Size > 0)
+				{
+					code_over = new byte[hook.Size];
+					MemoryHelper.Read(hook.Address, code_over, hook.Size);
+					MemoryHelper.Write(origin_code_offset, code_over, hook.Size);
+				}
+
+				var jmp_back_offset = origin_code_offset + hook.Size;
+				ASMWriter.WriteJump(new JumpStruct(jmp_back_offset, hook.Address + hook.Size));
+
+				ASMWriter.WriteJump(new JumpStruct(hook.Address, pMemory));
+
+				ASMWriter.FlushInstructionCache(pMemory, memoryHandle.Size);
+			}
+		}
+
+		public void UnHook()
+        {
+			if(code_over != null)
+			{
+				HookAttribute hook = HookInfo.GetHookAttribute();
+				MemoryHelper.Write(hook.Address, code_over, hook.Size);
+				ASMWriter.FlushInstructionCache(hook.Address, Math.Max(hook.Size, 5));
+				code_over = null;
+			}
+        }
+
+		private bool disposedValue;
+		protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                    memoryHandle.Dispose();
+                }
+
+				UnHook();
+                disposedValue = true;
+            }
+        }
+        ~AresHookTransferStation()
+        {
+            Dispose(disposing: false);
+        }
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+    }
+
 	[StructLayout(LayoutKind.Sequential)]
 	public unsafe struct Register
 	{

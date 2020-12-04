@@ -9,6 +9,46 @@ using System.Threading.Tasks;
 
 namespace DynamicPatcher
 {
+    public class MemoryHandle : IDisposable
+    {
+        public int Memory { get; set; }
+        public int Size { get; private set; }
+
+        private bool disposedValue;
+        public MemoryHandle(int size)
+        {
+            var memory = MemoryHelper.AllocMemory(size);
+            if(memory == (int)IntPtr.Zero)
+            {
+                throw new OutOfMemoryException("MemoryHandle Alloc fail.");
+            }
+            Memory = memory;
+            Size = size;
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposedValue)
+            {
+                if (disposing)
+                {
+                }
+
+                MemoryHelper.FreeMemory(Memory);
+                disposedValue = true;
+            }
+        }
+        ~MemoryHandle()
+        {
+            Dispose(disposing: false);
+        }
+        public void Dispose()
+        {
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
+        }
+    }
+
     public class MemoryHelper
     {
         [DllImport("kernel32.dll")]
@@ -161,20 +201,22 @@ namespace DynamicPatcher
         }
         static private IntPtr FindYRProcessHandle()
         {
-            // return Process.GetCurrentProcess().Handle;
+
             Process[] processes = Process.GetProcesses();
             foreach (var process in processes)
             {
                 if (process.ProcessName.Contains("gamemd"))
                 {
-                    try {
-                        process.EnableRaisingEvents = true;
-                        process.Exited += (object sender, EventArgs e) => {
+                    var targetProcess = Process.GetCurrentProcess();
+                    try
+                    {
+                        Logger.Log("find YR process: {0} ({1})", targetProcess.MainWindowTitle, targetProcess.Id);
+                        targetProcess.EnableRaisingEvents = true;
+                        targetProcess.Exited += (object sender, EventArgs e) => {
                             YRHandle = IntPtr.Zero;
-                            Logger.Log(process.MainWindowTitle + " exited.");
+                            Logger.Log("{0} ({1}) exited.", targetProcess.MainWindowTitle, targetProcess.Id);
                             };
-                        Logger.Log("find YR process: " + process.MainWindowTitle);
-                        return process.Handle;
+                        return targetProcess.Handle;
                     }
                     catch (Exception e)
                     {

@@ -23,5 +23,8 @@ namespace DynamicPatcher
             patcher.Init(workDir);
             patcher.StartWatchPath(workDir);
         }
+
+        // init the class Program and invoke ctor
+        static public void Active() { }
     }
 }

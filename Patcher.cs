@@ -18,12 +18,16 @@ namespace DynamicPatcher
         List<FileSystemWatcher> watchers = new List<FileSystemWatcher>();
         Compiler compiler = new Compiler();
         Dictionary<string, Assembly> fileAssembly = new Dictionary<string, Assembly>();
-        Dictionary<string, TimeSpan> lastModifications = new Dictionary<string, TimeSpan>();
-        Stopwatch stopwatch = new Stopwatch();
 
         public void Init(string workDir)
         {
-            Logger.OutputStream = new FileStream(Path.Combine(workDir, "patcher.log"), FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
+            Logger.WriteLine += (string str) => Console.WriteLine(str);
+
+            var logFileStream = new FileStream(Path.Combine(workDir, "patcher.log"), FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
+            var logFileWriter = new StreamWriter(logFileStream);
+            Logger.WriteLine += (string str) => {
+                logFileWriter.WriteLine(str); logFileWriter.Flush();
+            };
 
             using (StreamReader file = File.OpenText(Path.Combine(workDir, "config.json")))
             {
@@ -47,6 +51,7 @@ namespace DynamicPatcher
         {
             Task.Run(() => WatchPath(path));
         }
+
         public void WatchPath(string path)
         {
             if (Directory.Exists(path) == false)
@@ -68,6 +73,9 @@ namespace DynamicPatcher
 
             watchers.Add(watcher);
         }
+
+        Dictionary<string, TimeSpan> lastModifications = new Dictionary<string, TimeSpan>();
+        Stopwatch stopwatch = new Stopwatch();
 
         private bool IsFileChanged(string path)
         {
@@ -105,7 +113,7 @@ namespace DynamicPatcher
 
             if (IsFileChanged(path) == false)
             {
-                    return;
+                return;
             }
 
             Logger.Log("detected file {0}: {1}", e.ChangeType, path);
@@ -119,21 +127,16 @@ namespace DynamicPatcher
                     break;
             }
 
-            Thread.Sleep(TimeSpan.FromSeconds(1.0));
+            // wait for editor releasing
+            var time = TimeSpan.FromSeconds(1.0);
+            Logger.Log("sleep: " + time.TotalSeconds);
+            Thread.Sleep(time);
 
             var assembly = TryCompile(path);
 
             if (assembly != null)
             {
-                if (fileAssembly.ContainsKey(path))
-                {
-                    RemoveAssemblyHook(fileAssembly[path]);
-                }
-                else
-                {
-                    fileAssembly.Add(path, assembly);
-                }
-                ApplyAssembly(assembly);
+                RefreshAssembly(path, assembly);
             }
             else
             {
@@ -150,19 +153,33 @@ namespace DynamicPatcher
 
             foreach (var file in list)
             {
-                string fileName = file.FullName;
-                var assembly = TryCompile(fileName);
+                string filePath = file.FullName;
+                var assembly = TryCompile(filePath);
 
                 if (assembly != null)
                 {
-                    fileAssembly.Add(path, assembly);
-                    ApplyAssembly(assembly);
+                    RefreshAssembly(filePath, assembly);
                 }
                 else
                 {
                     Logger.Log("first compile error: " + file.FullName);
                 }
             }
+        }
+
+        void RefreshAssembly(string path, Assembly assembly)
+        {
+            if (fileAssembly.ContainsKey(path))
+            {
+                Logger.Log("replace assembly {0} with {1}", fileAssembly[path].FullName, assembly.FullName);
+                RemoveAssemblyHook(fileAssembly[path]);
+                fileAssembly[path] = assembly;
+            }
+            else
+            {
+                fileAssembly.Add(path, assembly);
+            }
+            ApplyAssembly(assembly);
         }
 
         void ApplyAssembly(Assembly assembly)
@@ -181,11 +198,6 @@ namespace DynamicPatcher
                     }
                 }
             }
-        }
-
-        void RemoveAssemblyHook(Assembly assembly)
-        {
-
         }
 
         void ApplyHook(MethodInfo method)
@@ -221,58 +233,43 @@ namespace DynamicPatcher
             }
         }
 
+        Dictionary<string, AresHookTransferStation> transferStations = new Dictionary<string, AresHookTransferStation>();
+
         private void ApplyAresHook(HookInfo info)
         {
-            HookAttribute hook = info.GetHookAttribute();
-            byte INIT = ASM.INIT;
+            string key = info.Method.Name;
 
-            byte[] code_call =
+            if (transferStations.ContainsKey(key))
             {
-                0x60, 0x9C, //PUSHAD, PUSHFD
-		        0x68, INIT, INIT, INIT, INIT, //PUSH HookAddress
-		        0x83, 0xEC, 0x04,//SUB ESP, 4
-		        0x8D, 0x44, 0x24, 0x04,//LEA EAX,[ESP + 4]
-		        0x50, //PUSH EAX
-		        0xE8, INIT, INIT, INIT, INIT,  //CALL ProcAddress
-		        0x83, 0xC4, 0x0C, //ADD ESP, 0Ch
-		        0x89, 0x44, 0x24, 0xF8,//MOV ss:[ESP - 8], EAX
-		        0x9D, 0x61, //POPFD, POPAD
-		        0x83, 0x7C, 0x24, 0xD4, 0x00,//CMP ss:[ESP - 2Ch], 0
-		        0x74, 0x04, //JZ .proceed
-		        0xFF, 0x64, 0x24, 0xD4 //JMP ss:[ESP - 2Ch]
-            };
+                transferStations[key].SetHook(info);
+            }
+            else
+            {
+                var station = new AresHookTransferStation(info);
+                transferStations.Add(key, station);
+            }
+        }
 
-            var callable = (int)info.GetCallable();
-
-            Logger.Log("ares hook callable: 0x{0:X}", callable);
-
-            var pMemory = MemoryHelper.AllocMemory(code_call.Length + hook.Size + ASM.Jmp.Length);
-
-            Logger.Log("ares hook alloc: 0x{0:X}", pMemory);
-
-            if (pMemory != (int)IntPtr.Zero) {
-
-                MemoryHelper.Write(pMemory, code_call, code_call.Length);
-
-                MemoryHelper.Write(pMemory + 3, hook.Address);
-                ASMWriter.WriteCall(new JumpStruct(pMemory + 0xF, callable));
-
-                var origin_code_offset = pMemory + code_call.Length;
-
-                if (hook.Size > 0)
+        void RemoveAssemblyHook(Assembly assembly)
+        {
+            Type[] types = assembly.GetTypes();
+            foreach (Type type in types)
+            {
+                MethodInfo[] methods = type.GetMethods();
+                foreach (MethodInfo method in methods)
                 {
-                    byte[] over = new byte[hook.Size];
-                    MemoryHelper.Read(hook.Address, over, hook.Size);
-                    MemoryHelper.Write(origin_code_offset, over, hook.Size);
+                    if (method.IsDefined(typeof(HookAttribute), false))
+                    {
+                        var info = new HookInfo(method);
+                        string key = info.Method.Name;
+
+                        if (transferStations.ContainsKey(key))
+                        {
+                            Logger.Log("remove hook: " + info.Method.Name);
+                            transferStations[key].UnHook();
+                        }
+                    }
                 }
-
-                var jmp_back_offset = origin_code_offset + hook.Size;
-
-                ASMWriter.WriteJump(new JumpStruct(jmp_back_offset, hook.Address + hook.Size));
-
-                ASMWriter.WriteJump(new JumpStruct(hook.Address, pMemory));
-
-                //_hook_info[hook.Name].caller = pMemory;
             }
         }
     }

@@ -3,6 +3,7 @@
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 // Windows Header Files
 #include <windows.h>
+#include <thread>
 
 
 struct alignas(16) hookdecl {
@@ -14,15 +15,18 @@ struct alignas(16) hookdecl {
 #pragma section(".syhks00", read, write)
 __declspec(allocate(".syhks00")) hookdecl _hk__PatcherLoader_Action = { 0x7CD810, 0x9, "PatcherLoader_Action" };
 
+
 auto Action = []() {
-    using System::Reflection::Assembly;
-    using System::Activator;
-    using System::Console;
     if (AllocConsole()) {
+        using System::Reflection::Assembly;
+        using System::Activator;
+        using System::Console;
+
         Console::WriteLine("AllocConsole() succeed");
         //Assembly^ assembly = Assembly::Load("DynamicPatcher");
         //Activator::CreateInstance(assembly->GetType("Program"));
-        auto _ = gcnew DynamicPatcher::Program();
+        //auto program = gcnew DynamicPatcher::Program();
+        DynamicPatcher::Program::Active();
         Console::WriteLine("load succeed");
     }
     else {
@@ -33,7 +37,13 @@ auto Action = []() {
 typedef DWORD REGISTERS;
 extern "C" __declspec(dllexport) DWORD __cdecl PatcherLoader_Action(REGISTERS * R)
 {
-    Action();
+    std::thread([]()
+        {
+            std::this_thread::sleep_for(std::chrono::seconds(2));
+            Action();
+        }
+    ).detach();
+
     return 0;
 }
 
