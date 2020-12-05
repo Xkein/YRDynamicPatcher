@@ -116,6 +116,7 @@ namespace DynamicPatcher
                 return;
             }
 
+            Logger.Log("");
             Logger.Log("detected file {0}: {1}", e.ChangeType, path);
 
             switch (e.ChangeType)
@@ -129,9 +130,10 @@ namespace DynamicPatcher
 
             // wait for editor releasing
             var time = TimeSpan.FromSeconds(1.0);
-            Logger.Log("sleep: " + time.TotalSeconds);
+            Logger.Log("sleep: {0}s", time.TotalSeconds);
             Thread.Sleep(time);
 
+            Logger.Log("");
             var assembly = TryCompile(path);
 
             if (assembly != null)

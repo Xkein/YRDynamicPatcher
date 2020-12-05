@@ -205,7 +205,7 @@ namespace DynamicPatcher
             Process[] processes = Process.GetProcesses();
             foreach (var process in processes)
             {
-                if (process.ProcessName.Contains("gamemd"))
+                if (process.ProcessName.Contains("gamemd") && process.Id == Process.GetCurrentProcess().Id)
                 {
                     var targetProcess = Process.GetCurrentProcess();
                     try

@@ -6,6 +6,9 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
+using dword = System.UInt32;
+using word = System.UInt16;
+
 namespace DynamicPatcher
 {
 	public enum HookType
@@ -200,14 +203,14 @@ namespace DynamicPatcher
 	[StructLayout(LayoutKind.Sequential)]
 	public unsafe struct Register
 	{
-		UInt32 data;
+		dword data;
 
-		public UInt16 Get16()
+		public word Get16()
 		{
-			return (UInt16)data;
+			return (word)data;
 		}
 
-		public UInt32 Get()
+		public dword Get()
 		{
 			return data;
 		}
@@ -217,7 +220,7 @@ namespace DynamicPatcher
 			return (T)Convert.ChangeType(data, typeof(T));
 		}
 
-		public UInt32 Set(UInt32 value)
+		public dword Set(dword value)
 		{
 			return data = value;
 		}
@@ -227,7 +230,7 @@ namespace DynamicPatcher
 			data = Convert.ToUInt32(value);
 		}
 
-		public void Set16(UInt16 value)
+		public void Set16(word value)
 		{
 			data = data | value;
 		}
@@ -244,7 +247,7 @@ namespace DynamicPatcher
 
 		public void Set8Hi(byte value)
 		{
-			data = data | ((UInt32)value << 8);
+			data = data | ((dword)value << 8);
 		}
 
 		public void Set8Lo(byte value)
@@ -256,9 +259,9 @@ namespace DynamicPatcher
 			return (T*)lea(byteOffset);
 		}
 
-		public UInt32 lea(int byteOffset)
+		public dword lea(int byteOffset)
 		{
-			return (UInt32)(data + byteOffset);
+			return (dword)(data + byteOffset);
 		}
 
 		public T At<T>(int byteOffset) where T : unmanaged
@@ -276,8 +279,8 @@ namespace DynamicPatcher
 	[StructLayout(LayoutKind.Sequential)]
 	public unsafe struct REGISTERS
 	{
-		private UInt32 origin;
-		private UInt32 flags;
+		private dword origin;
+		private dword flags;
 
 		private Register _EDI;
 		private Register _ESI;
@@ -288,60 +291,60 @@ namespace DynamicPatcher
 		private Register _ECX;
 		private Register _EAX;
 
-		public UInt32 Origin
+		public dword Origin
         {
 			get => origin;
 			private set => origin = value;
 		}
 
-		public UInt32 EFLAGS
+		public dword EFLAGS
 		{
 			get => flags;
 			set => flags = value;
 		}
 
-		public UInt32 EAX
+		public dword EAX
 		{
 			get => _EAX.Get();
 			set => _EAX.Set(value);
 		}
-		public UInt32 ECX
+		public dword ECX
 		{
 			get => _ECX.Get();
 			set => _ECX.Set(value);
 		}
-		public UInt32 EDX
+		public dword EDX
 		{
 			get => _EDX.Get();
 			set => _EDX.Set(value);
 		}
-		public UInt32 EBX
+		public dword EBX
 		{
 			get => _EBX.Get();
 			set => _EBX.Set(value);
 		}
-		public UInt32 ESP
+		public dword ESP
 		{
 			get => _ESP.Get();
 			set => _ESP.Set(value);
 		}
-		public UInt32 EBP
+		public dword EBP
 		{
 			get => _EBP.Get();
 			set => _EBP.Set(value);
 		}
-		public UInt32 EDI
+		public dword EDI
 		{
 			get => _EDI.Get();
 			set => _EDI.Set(value);
 		}
-		public UInt32 ESI
+		public dword ESI
 		{
 			get => _ESI.Get();
 			set => _ESI.Set(value);
 		}
 		#region REG_SHORTCUTS_XHL(A)
-		public UInt16 AX
+		public word AX
 		{
 			get => _EAX.Get16();
 			set => _EAX.Set16(value);
@@ -358,7 +361,7 @@ namespace DynamicPatcher
 		}
 		#endregion
 		#region REG_SHORTCUTS_XHL(B)
-		public UInt16 BX
+		public word BX
 		{
 			get => _EBX.Get16();
 			set => _EBX.Set16(value);
@@ -375,7 +378,7 @@ namespace DynamicPatcher
 		}
 		#endregion
 		#region REG_SHORTCUTS_XHL(C)
-		public UInt16 CX
+		public word CX
 		{
 			get => _ECX.Get16();
 			set => _ECX.Set16(value);
@@ -392,7 +395,7 @@ namespace DynamicPatcher
 		}
 		#endregion
 		#region REG_SHORTCUTS_XHL(D)
-		public UInt16 DX
+		public word DX
 		{
 			get => _EDX.Get16();
 			set => _EDX.Set16(value);
@@ -414,7 +417,7 @@ namespace DynamicPatcher
 			return (T)Convert.ChangeType(_ESP.lea(offset), typeof(T));
 		}
 
-		public UInt32 lea_Stack(int offset)
+		public dword lea_Stack(int offset)
 		{
 			return _ESP.lea(offset);
 		}
@@ -429,14 +432,14 @@ namespace DynamicPatcher
 			return _ESP.At<T>(offset);
 		}
 
-		public UInt32 Stack32(int offset)
+		public dword Stack32(int offset)
 		{
-			return _ESP.At<UInt32>(offset);
+			return _ESP.At<dword>(offset);
 		}
 
-		public UInt16 Stack16(int offset)
+		public word Stack16(int offset)
 		{
-			return _ESP.At<UInt16>(offset);
+			return _ESP.At<word>(offset);
 		}
 
 		public byte Stack8(int offset)
@@ -454,7 +457,7 @@ namespace DynamicPatcher
 			_ESP.At(offset, value);
 		}
 
-		public void Stack16(int offset, UInt16 value)
+		public void Stack16(int offset, word value)
 		{
 			_ESP.At(offset, value);
 		}
