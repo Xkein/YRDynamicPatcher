@@ -33,8 +33,7 @@ namespace PatcherYRpp
         {
             return ref Helpers.GetUnmanagedRef<T>(Value);
         }
-        public T Data { get => Ref; }
-
+        public T Data { get => Ref; set => Ref = value; }
 
         //public static Pointer<T> GetObjectPtr(T obj)
         //{
@@ -71,11 +70,11 @@ namespace PatcherYRpp
             return new Span<T>(ptr.ToPointer(), length);
         }
 
-        public static unsafe Pointer<T> GetThisPointer<T>(this T obj) where T : unmanaged
-        {
-            void* ptr = &obj;
-            return (Pointer<T>)(ptr);
-        }
+        //public static unsafe Pointer<T> GetThisPointer<T>(ref T obj) where T : unmanaged
+        //{
+        //    void* ptr = &obj;
+        //    return (Pointer<T>)(ptr);
+        //}
 
 
         //[DllImport("kernel32.dll", EntryPoint = "MulDiv")]
@@ -92,12 +91,24 @@ namespace PatcherYRpp
         //[UnmanagedFunctionPointer(CallingConvention.Winapi)]
         //public delegate IntPtr StdCall_C(int _0, int _1 = 1, int _2 = 1);
 
-        //[DllImport("kernel32.dll")]
-        //public extern static IntPtr GetProcAddress(IntPtr hModule, string lpProcName);
-        //[DllImport("kernel32.dll")]
-        //public static extern IntPtr GetModuleHandle(string lpModuleName);
+        [DllImport("kernel32.dll")]
+        public extern static IntPtr GetProcAddress(IntPtr hModule, string lpProcName);
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr GetModuleHandle(string lpModuleName);
 
-        //private static IntPtr GetObjectPointerBase = GetProcAddress(GetModuleHandle("kernel32.dll"), "MulDiv");
+        private static IntPtr MulDivFunction = GetProcAddress(GetModuleHandle("kernel32.dll"), "MulDiv");
+
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+        public delegate IntPtr GetRefObjectPointerDelegate(ref object obj, int _1 = 1, int _2 = 2);
+        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
+        public delegate object GetPointerOjbectDelegate(ref object obj, int _1 = 1, int _2 = 2);
+
+        public static unsafe IntPtr GetObjectPointer(object obj)
+        {
+            var dlg = Marshal.GetDelegateForFunctionPointer<GetRefObjectPointerDelegate>(MulDivFunction);
+            Pointer<IntPtr> ptr = dlg(ref obj);
+            return ptr.Data;
+        }
 
         //public static unsafe T ForceConvert<T>(object obj)
         //{

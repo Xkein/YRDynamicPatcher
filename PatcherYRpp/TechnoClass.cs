@@ -13,10 +13,17 @@ namespace PatcherYRpp
         static public readonly IntPtr ArrayPointer = new IntPtr(0xA8EC78);
         static public ref DynamicVectorClass<Pointer<TechnoClass>> Array { get => ref DynamicVectorClass<Pointer<TechnoClass>>.GetDynamicVector(ArrayPointer); }
 
-        public Pointer<TechnoTypeClass> Type { get => YRPP.GetTechnoType(this.GetThisPointer()); }
+        [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
+        public delegate IntPtr GetTechnoTypeDelegate(ref TechnoClass techno);
+        static public GetTechnoTypeDelegate GetTechnoType = Marshal.GetDelegateForFunctionPointer<GetTechnoTypeDelegate>(new IntPtr(0x6F3270));
+
+        public Pointer<TechnoTypeClass> Type { get => GetTechnoType(ref this); }
+
+        [FieldOffset(0)]
+        AbstractClass Base;
 
         [FieldOffset(540)]
-        Pointer<HouseClass> Owner;
+        public Pointer<HouseClass> Owner;
     }
 
 
@@ -24,6 +31,6 @@ namespace PatcherYRpp
     public struct TechnoTypeClass
     {
         [FieldOffset(0)]
-        AbstractTypeClass Base;
+        public AbstractTypeClass Base;
     }
 }

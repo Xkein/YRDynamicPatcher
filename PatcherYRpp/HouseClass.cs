@@ -11,17 +11,17 @@ namespace PatcherYRpp
     public struct HouseClass
     {
         [FieldOffset(48)]
-        int ArrayIndex;
+        public int ArrayIndex;
 
         [FieldOffset(52)]
-        Pointer<HouseTypeClass> Type;
+        public Pointer<HouseTypeClass> Type;
     }
 
     [StructLayout(LayoutKind.Explicit, Size = 432)]
     public struct HouseTypeClass
     {
         [FieldOffset(0)]
-        AbstractTypeClass Base;
+        public AbstractTypeClass Base;
 
     }
 }
