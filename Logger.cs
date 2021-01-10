@@ -17,5 +17,10 @@ namespace DynamicPatcher
 
             WriteLine.Invoke(str);
         }
+
+        static public void Log(object obj)
+        {
+            WriteLine.Invoke(obj.ToString());
+        }
     }
 }

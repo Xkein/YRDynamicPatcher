@@ -32,27 +32,76 @@ namespace DynamicPatcher
         public void Load(JObject json)
         {
             var references = json["references"].ToArray();
-            Logger.Log("references: ");
 
             foreach (var token in references)
             {
                 Parameters.ReferencedAssemblies.Add(token.ToString());
-                Logger.Log(token.ToString());
             }
 
-            Logger.Log("");
-
-
             var options = json["compiler_options"].ToArray();
-            Logger.Log("compiler_options: ");
 
             foreach (var token in options)
             {
-                Parameters.CompilerOptions += token.ToString();
-                Logger.Log(token.ToString());
+                Parameters.CompilerOptions += token.ToString() + " ";
             }
 
+            ShowCompilerConfig();
+        }
+
+        private void ShowCompilerConfig()
+        {
+            Logger.Log("ReferencedAssemblies: ");
+            foreach (var assembly in Parameters.ReferencedAssemblies)
+            {
+                Logger.Log(assembly);
+            }
             Logger.Log("");
+
+            Logger.Log("CompilerOptions: ");
+            Logger.Log(Parameters.CompilerOptions);
+            Logger.Log("");
+
+            Logger.Log("IncludeDebugInformation: ");
+            Logger.Log(Parameters.IncludeDebugInformation);
+            Logger.Log("");
+
+            Logger.Log("TreatWarningsAsErrors: ");
+            Logger.Log(Parameters.TreatWarningsAsErrors);
+            Logger.Log("");
+
+            Logger.Log("WarningLevel: ");
+            Logger.Log(Parameters.WarningLevel);
+            Logger.Log("");
+
+            Logger.Log("CoreAssemblyFileName: ");
+            Logger.Log(Parameters.CoreAssemblyFileName);
+            Logger.Log("");
+
+            Logger.Log("EmbeddedResources: ");
+            foreach (var resource in Parameters.EmbeddedResources)
+            {
+                Logger.Log(resource);
+            }
+            Logger.Log("");
+
+            Logger.Log("LinkedResources: ");
+            foreach (var resource in Parameters.LinkedResources)
+            {
+                Logger.Log(resource);
+            }
+            Logger.Log("");
+
+            //Logger.Log("Win32Resource: ");
+            //Logger.Log(Parameters.Win32Resource);
+            //Logger.Log("");
+
+            //Logger.Log("MainClass: ");
+            //Logger.Log(Parameters.MainClass);
+            //Logger.Log("");
+
+            //Logger.Log("OutputAssembly: ");
+            //Logger.Log(Parameters.OutputAssembly);
+            //Logger.Log("");
         }
 
         public Assembly Compile(string path)
@@ -62,8 +111,16 @@ namespace DynamicPatcher
             
             CompilerResults results = Provider.CompileAssemblyFromFile(Parameters, path);
 
+            Logger.Log("compiler output: ");
+            foreach (string str in results.Output)
+            {
+                Logger.Log(str);
+            }
+            Logger.Log("");
+
             if (results.Errors.HasErrors)
             {
+                Logger.Log("compiler errors: ");
                 foreach (CompilerError e in results.Errors)
                 {
                     Logger.Log(e.ErrorText);
