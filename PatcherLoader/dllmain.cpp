@@ -4,6 +4,7 @@
 // Windows Header Files
 #include <windows.h>
 #include <thread>
+#include <string>
 
 
 struct alignas(16) hookdecl {
@@ -47,6 +48,28 @@ extern "C" __declspec(dllexport) DWORD __cdecl PatcherLoader_Action(REGISTERS * 
     return 0;
 }
 
+//Handshake definitions
+struct SyringeHandshakeInfo
+{
+    int cbSize;
+    int num_hooks;
+    unsigned int checksum;
+    DWORD exeFilesize;
+    DWORD exeTimestamp;
+    unsigned int exeCRC;
+    int cchMessage;
+    char* Message;
+};
+
+extern "C" __declspec(dllexport) HRESULT __cdecl SyringeHandshake(SyringeHandshakeInfo * pInfo)
+{
+    if (pInfo) {
+        std::string message = "Patcher Loader Handshake";
+        std::copy(message.begin(), message.end(), pInfo->Message);
+        return S_OK;
+    }
+    return E_POINTER;
+}
 
 BOOL APIENTRY DllMain( HMODULE hModule,
                        DWORD  ul_reason_for_call,
