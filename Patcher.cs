@@ -40,6 +40,11 @@ namespace DynamicPatcher
                         System.Windows.Forms.MessageBox.Show("Attach Me", "Dynamic Patcher");
                     }
 
+                    if (json["try_catch_callable"].ToObject<bool>())
+                    {
+                        HookInfo.TryCatchCallable = true;
+                    }
+
                     compiler.Load(json);
                 }
             }
@@ -188,19 +193,26 @@ namespace DynamicPatcher
         {
             Logger.Log("appling: " + assembly.FullName);
 
+            Logger.Log("-----------------------------------");
             Type[] types = assembly.GetTypes();
             foreach (Type type in types)
             {
+                Logger.Log("in class {0}: ", type.FullName);
+
                 MethodInfo[] methods = type.GetMethods();
                 foreach (MethodInfo method in methods)
                 {
                     if (method.IsDefined(typeof(HookAttribute), false))
                     {
+                        Logger.Log("");
                         ApplyHook(method);
                     }
                 }
             }
+            Logger.Log("-----------------------------------");
         }
+
+        Dictionary<string, HookTransferStation> transferStations = new Dictionary<string, HookTransferStation>();
 
         void ApplyHook(MethodInfo method)
         {
@@ -211,20 +223,44 @@ namespace DynamicPatcher
 
             try
             {
-                switch (hook.Type)
+                string key = info.Method.Name;
+
+                HookTransferStation station = null;
+
+                if (transferStations.ContainsKey(key))
                 {
-                    case HookType.AresHook:
-                        ApplyAresHook(info);
-                        break;
-                    case HookType.SimpleJumpToRet:
-                        ASMWriter.WriteJump(new JumpStruct(hook.Address, info.GetReturnValue()));
-                        break;
-                    case HookType.DirectJumpToHook:
-                        ASMWriter.WriteJump(new JumpStruct(hook.Address, (int)info.GetCallable()));
-                        break;
-                    default:
-                        Logger.Log("found unkwnow hook: " + method.Name);
-                        break;
+                    station = transferStations[key];
+                    if (hook.Type == station.HookInfo.GetHookAttribute().Type)
+                    {
+                        Logger.Log("replace key '{0}'", key);
+                        station.SetHook(info);
+                    }
+                    else
+                    {
+                        Logger.Log("remove key '{0}' because of hook type mismatch. ", key);
+                        transferStations.Remove(key);
+                        station = null;
+                    }
+                }
+                
+                if(station == null)
+                {
+                    Logger.Log("add key '{0}'", key);
+                    switch (hook.Type)
+                    {
+                        case HookType.AresHook:
+                            station = new AresHookTransferStation(info);
+                            break;
+                        case HookType.SimpleJumpToRet:
+                        case HookType.DirectJumpToHook:
+                            station = new JumpHookTransferStation(info);
+                            break;
+                        default:
+                            Logger.Log("found unkwnow hook: " + method.Name);
+                            return;
+                    }
+
+                    transferStations.Add(key, station);
                 }
 
                 ASMWriter.FlushInstructionCache(hook.Address, Math.Max(hook.Size, 5));
@@ -232,23 +268,6 @@ namespace DynamicPatcher
             catch (Exception e)
             {
                 Logger.Log("hook applied error: " + e.Message);
-            }
-        }
-
-        Dictionary<string, AresHookTransferStation> transferStations = new Dictionary<string, AresHookTransferStation>();
-
-        private void ApplyAresHook(HookInfo info)
-        {
-            string key = info.Method.Name;
-
-            if (transferStations.ContainsKey(key))
-            {
-                transferStations[key].SetHook(info);
-            }
-            else
-            {
-                var station = new AresHookTransferStation(info);
-                transferStations.Add(key, station);
             }
         }
 

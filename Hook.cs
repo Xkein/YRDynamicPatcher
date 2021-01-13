@@ -36,8 +36,10 @@ namespace DynamicPatcher
 
 	class HookInfo
 	{
+		public static bool TryCatchCallable { get; set; } = false;
 		static readonly int InvalidAddress = 114514;
 		public MethodInfo Method { get; private set; }
+		public HookTransferStation TransferStation { get; set; } = null;
 		public HookInfo(MethodInfo method)
 		{
 			Method = method;
@@ -52,7 +54,9 @@ namespace DynamicPatcher
 		delegate void HookFunction(params object[] paramters);
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-		delegate UInt32 AresHookFunction(ref REGISTERS R);
+		delegate dword AresHookFunction(ref REGISTERS R);
+		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+		delegate dword AresHookDelegate(IntPtr R);
 
 		public int GetReturnValue()
 		{
@@ -67,7 +71,9 @@ namespace DynamicPatcher
 		public IntPtr GetCallable()
 		{
 			Type dlgType = null;
-			switch (GetHookAttribute().Type)
+			HookAttribute hook = GetHookAttribute();
+
+			switch (hook.Type)
 			{
 				case HookType.AresHook:
 					dlgType = typeof(AresHookFunction);
@@ -79,13 +85,151 @@ namespace DynamicPatcher
 					dlgType = typeof(HookFunction);
 					break;
 			}
-			Delegate dlg = Method.CreateDelegate(dlgType);
+
+			Delegate dlg = null;
+
+            if (TryCatchCallable)
+			{
+				switch (hook.Type)
+				{
+					case HookType.AresHook:
+						var aresHook = Method.CreateDelegate(dlgType) as AresHookFunction;
+						AresHookDelegate tryAresCallable = (IntPtr R) =>
+						 {
+                             try
+							 {
+								 unsafe
+								 {
+									 return aresHook.Invoke(ref *(REGISTERS*)R);
+								 }
+							 }
+                             catch (Exception e)
+							 {
+								 Logger.Log("hook {0} exception: {1}", Method.Name, e.Message);
+								 Logger.Log(e.StackTrace);
+
+								 Logger.Log("TransferStation unhook to run on origin code");
+								 TransferStation.UnHook();
+								 return (uint)hook.Address;
+                             }
+						 };
+						dlg = tryAresCallable;
+						break;
+					case HookType.DirectJumpToHook:
+						var callable = Method.CreateDelegate(dlgType) as HookFunction;
+						HookFunction tryCallable = (object[] paramters) =>
+						{
+							try
+							{
+								callable.Invoke(paramters);
+							}
+							catch (Exception e)
+							{
+								Logger.Log("hook {0} exception: {1}", Method.Name, e.Message);
+								Logger.Log(e.StackTrace);
+							}
+						};
+						dlg = tryCallable;
+						break;
+				}
+            }
+            else
+			{
+				dlg = Method.CreateDelegate(dlgType);
+			}
 
 			return Marshal.GetFunctionPointerForDelegate(dlg);
 		}
 	}
+	class HookTransferStation : IDisposable
+	{
+		public HookInfo HookInfo { get; set; }
+		protected byte[] code_over;
 
-	class AresHookTransferStation : IDisposable
+		public HookTransferStation(HookInfo info)
+		{
+			SetHook(info);
+		}
+		virtual public void SetHook(HookInfo info)
+		{
+			UnHook();
+
+			HookInfo = info;
+			HookInfo.TransferStation = this;
+			HookAttribute hook = info.GetHookAttribute();
+
+			if (hook.Size > 0)
+			{
+				code_over = new byte[hook.Size];
+				MemoryHelper.Read(hook.Address, code_over, hook.Size);
+			}
+		}
+		virtual public void UnHook()
+        {
+			if (code_over != null)
+			{
+				HookAttribute hook = HookInfo.GetHookAttribute();
+				MemoryHelper.Write(hook.Address, code_over, hook.Size);
+				ASMWriter.FlushInstructionCache(hook.Address, Math.Max(hook.Size, 5));
+				code_over = null;
+			}
+		}
+
+		private bool disposedValue;
+		protected virtual void Dispose(bool disposing)
+		{
+			if (!disposedValue)
+			{
+				if (disposing)
+				{
+				}
+
+				UnHook();
+				disposedValue = true;
+			}
+		}
+		~HookTransferStation()
+		{
+			Dispose(disposing: false);
+		}
+		public void Dispose()
+		{
+			Dispose(disposing: true);
+			GC.SuppressFinalize(this);
+		}
+	}
+
+	class JumpHookTransferStation : HookTransferStation
+	{
+		public JumpHookTransferStation(HookInfo info) : base(info)
+		{
+		}
+
+		public override void SetHook(HookInfo info)
+		{
+			base.SetHook(info);
+
+			HookAttribute hook = info.GetHookAttribute();
+
+			switch (hook.Type)
+			{
+				case HookType.SimpleJumpToRet:
+					int address = info.GetReturnValue();
+					Logger.Log("jump to address: 0x{0:X}", address);
+					ASMWriter.WriteJump(new JumpStruct(hook.Address, address));
+					break;
+				case HookType.DirectJumpToHook:
+					int callable = (int)info.GetCallable();
+					Logger.Log("jump to callable: 0x{0:X}", callable);
+					ASMWriter.WriteJump(new JumpStruct(hook.Address, callable));
+					break;
+				default:
+					Logger.Log("found unkwnow jump hook: " + info.Method.Name);
+					break;
+			}
+		}
+	}
+	class AresHookTransferStation : HookTransferStation
 	{
 		static readonly byte INIT = ASM.INIT;
 		static readonly byte[] code_call =
@@ -105,20 +249,19 @@ namespace DynamicPatcher
             };
 
 		MemoryHandle memoryHandle;
-		byte[] code_over;
 
-        public HookInfo HookInfo { get; set; }
-
-		public AresHookTransferStation(HookInfo info)
+		public AresHookTransferStation(HookInfo info) : base(info)
 		{
-			// alloc bigger space
-			memoryHandle = new MemoryHandle(code_call.Length + 0x10 + ASM.Jmp.Length);
-			SetHook(info);
 		}
 
 		IntPtr GetMemory(int size)
         {
-            if (memoryHandle.Size < size)
+			if (memoryHandle == null)
+			{
+				// alloc bigger space
+				memoryHandle = new MemoryHandle(code_call.Length + 0x10 + ASM.Jmp.Length);
+			}
+			if (memoryHandle.Size < size)
             {
 				memoryHandle = new MemoryHandle(size);
 			}
@@ -126,11 +269,10 @@ namespace DynamicPatcher
 			return (IntPtr)memoryHandle.Memory;
 		}
 
-		public void SetHook(HookInfo info)
+		public override void SetHook(HookInfo info)
 		{
-			UnHook();
+			base.SetHook(info);
 
-			HookInfo = info;
 			HookAttribute hook = info.GetHookAttribute();
 
 			var callable = (int)info.GetCallable();
@@ -150,8 +292,6 @@ namespace DynamicPatcher
 
 				if (hook.Size > 0)
 				{
-					code_over = new byte[hook.Size];
-					MemoryHelper.Read(hook.Address, code_over, hook.Size);
 					MemoryHelper.Write(origin_code_offset, code_over, hook.Size);
 				}
 
@@ -164,41 +304,15 @@ namespace DynamicPatcher
 			}
 		}
 
-		public void UnHook()
-        {
-			if(code_over != null)
+		protected override void Dispose(bool disposing)
+		{
+			if (disposing)
 			{
-				HookAttribute hook = HookInfo.GetHookAttribute();
-				MemoryHelper.Write(hook.Address, code_over, hook.Size);
-				ASMWriter.FlushInstructionCache(hook.Address, Math.Max(hook.Size, 5));
-				code_over = null;
+				memoryHandle.Dispose();
 			}
-        }
-
-		private bool disposedValue;
-		protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                    memoryHandle.Dispose();
-                }
-
-				UnHook();
-                disposedValue = true;
-            }
-        }
-        ~AresHookTransferStation()
-        {
-            Dispose(disposing: false);
-        }
-        public void Dispose()
-        {
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
-        }
-    }
+			base.Dispose(disposing);
+		}
+	}
 
 	[StructLayout(LayoutKind.Sequential)]
 	public unsafe struct Register
