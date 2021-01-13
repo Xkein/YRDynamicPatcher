@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 
 namespace PatcherYRpp
 {
@@ -28,17 +29,19 @@ namespace PatcherYRpp
         }
 
         public IntPtr Value;
-        public ref T Ref { get => ref GetRef(); }
-        public ref T GetRef()
-        {
-            return ref Helpers.GetUnmanagedRef<T>(Value);
-        }
-        public T Data { get => Ref; set => Ref = value; }
+        public unsafe ref T Ref { get => ref Unsafe.AsRef<T>(Value.ToPointer()); }
+        public unsafe T Data { get => Unsafe.Read<T>(Value.ToPointer()); set => Unsafe.Write(Value.ToPointer(), value); }
+        public unsafe ref T this[int index] { get => ref Unsafe.Add(ref Unsafe.AsRef<T>(Value.ToPointer()), index); }
 
-        //public static Pointer<T> GetObjectPtr(T obj)
-        //{
-        //    return (Pointer<T>)YRPP.GetObjectPointer(obj);
-        //}
+        public Pointer<TTo> Convert<TTo>()
+        {
+            return new Pointer<TTo>(Value);
+        }
+
+        public static unsafe Pointer<T> AsPointer(ref T obj)
+        {
+            return new Pointer<T>(Unsafe.AsPointer(ref obj));
+        }
 
         public static bool operator ==(Pointer<T> value1, Pointer<T> value2) => value1.Value == value2.Value;
         public static bool operator !=(Pointer<T> value1, Pointer<T> value2) => value1.Value != value2.Value;
@@ -59,10 +62,9 @@ namespace PatcherYRpp
     public static class Helpers
     {
 
-        static public ref T GetUnmanagedRef<T>(IntPtr ptr, int offset = 0)
+        static public unsafe ref T GetUnmanagedRef<T>(IntPtr ptr, int offset = 0)
         {
-            var data = GetSpan<T>(ptr, offset + 1);
-            return ref data[offset];
+            return ref new Pointer<T>(ptr)[offset];
         }
 
         static public unsafe Span<T> GetSpan<T>(IntPtr ptr, int length)
@@ -70,64 +72,11 @@ namespace PatcherYRpp
             return new Span<T>(ptr.ToPointer(), length);
         }
 
-        //public static unsafe Pointer<T> GetThisPointer<T>(ref T obj) where T : unmanaged
-        //{
-        //    void* ptr = &obj;
-        //    return (Pointer<T>)(ptr);
-        //}
-
-
-        //[DllImport("kernel32.dll", EntryPoint = "MulDiv")]
-        //public static extern IntPtr GetObjectPointerExBase(ref object obj, int _1 = 1, int _2 = 1);
-        //public static IntPtr GetObjectPointerEx(object obj)
-        //{
-        //    const int magic_offset = 0x54;
-        //    Pointer<IntPtr> tmp = GetObjectPointerExBase(ref obj) + magic_offset;
-        //    return tmp.Data;
-        //}
-
-        //[UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        //public delegate IntPtr GetObjectPointerDelegate<T>(ref T obj, int _1 = 1, int _2 = 2);
-        //[UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        //public delegate IntPtr StdCall_C(int _0, int _1 = 1, int _2 = 1);
-
-        [DllImport("kernel32.dll")]
-        public extern static IntPtr GetProcAddress(IntPtr hModule, string lpProcName);
-        [DllImport("kernel32.dll")]
-        public static extern IntPtr GetModuleHandle(string lpModuleName);
-
-        private static IntPtr MulDivFunction = GetProcAddress(GetModuleHandle("kernel32.dll"), "MulDiv");
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        public delegate IntPtr GetRefObjectPointerDelegate(ref object obj, int _1 = 1, int _2 = 2);
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        public delegate object GetPointerOjbectDelegate(ref object obj, int _1 = 1, int _2 = 2);
-
-        public static unsafe IntPtr GetObjectPointer(object obj)
+        public static TTo ForceConvert<TFrom, TTo>(TFrom obj)
         {
-            var dlg = Marshal.GetDelegateForFunctionPointer<GetRefObjectPointerDelegate>(MulDivFunction);
-            Pointer<IntPtr> ptr = dlg(ref obj);
-            return ptr.Data;
+            return Unsafe.As<TFrom, TTo>(ref obj);
+        //    var ptr = new Pointer<TTo>(Pointer<TFrom>.AsPointer(ref obj));
+        //    return ptr.Ref;
         }
-
-        //public static unsafe T ForceConvert<T>(object obj)
-        //{
-        //    var buffer = GetSpan<int>(GetObjectPointerEx(obj), 1);
-        //    object sample = Activator.CreateInstance<T>();
-        //    Pointer<int> sampleId = GetObjectPointerEx(sample);
-        //    buffer[0] = sampleId.Ref;
-        //    return (T)obj;
-        //}
-
-
-        //public static Pointer<T> GetObjectPointer<T>(ref T obj)
-        //{
-        //    var dlg = Marshal.GetDelegateForFunctionPointer<StdCall_C>(GetObjectPointerBase);
-        //    Pointer<GetObjectPointerDelegate<T>> dlgPtr = Marshal.GetFunctionPointerForDelegate((Delegate)dlg);
-        //    GetObjectPointerDelegate<T> tmp = new GetObjectPointerDelegate<T>((ref T _0, int _1, int _2) => { return IntPtr.Zero; });
-        //    var dlgT = ForceConvert<GetObjectPointerDelegate<T>>(dlgPtr);
-        //    IntPtr ptr = dlgT.Invoke(ref obj);
-        //    return GetUnmanagedRef<Pointer<T>>(ptr);
-        //}
     }
 }

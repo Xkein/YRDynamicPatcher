@@ -14,7 +14,7 @@ namespace PatcherYRpp
 		[FieldOffset(0)]
 		public int Vfptr;
 	}
-	[StructLayout(LayoutKind.Explicit, Size = 152, CharSet = CharSet.Ansi, Pack = 1)]
+	[StructLayout(LayoutKind.Explicit, Size = 152, Pack = 1)]
 	public struct AbstractTypeClass
 	{
 		//[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 0x18)]
@@ -30,7 +30,9 @@ namespace PatcherYRpp
 		//[MarshalAs(UnmanagedType.ByValTStr, SizeConst = 0x31)]
 		//[FieldOffset(100)] public string Name;
 
-		[FieldOffset(96)]
-		public unsafe IntPtr UIName;
+		[FieldOffset(36)] public byte ID_first;
+		[FieldOffset(61)] public byte UINameLabel_first;
+		[FieldOffset(96)] public IntPtr UIName;
+		[FieldOffset(100)] public byte Name_first;
 	}
 }
