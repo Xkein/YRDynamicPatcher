@@ -5,7 +5,179 @@
 #include <windows.h>
 #include <thread>
 #include <string>
+#include <array>
 
+#include <mscoree.h>
+#include <metahost.h>
+
+#import "mscorlib.tlb" raw_interfaces_only \
+    high_property_prefixes("_get","_put","_putref")		\
+    rename("ReportEvent", "InteropServices_ReportEvent")  rename("or", "or_")
+using namespace mscorlib;
+
+// http://blog.chinaunix.net/uid-26349264-id-3283439.html
+// not work good
+void ActiveByCLR()
+{
+    HRESULT hr;
+    ICLRMetaHost* pMetaHost = NULL;
+    ICLRRuntimeInfo* pRuntimeInfo = NULL;
+
+    auto Cleanup = [&]() {
+        if (pMetaHost) {
+            pMetaHost->Release();
+            pMetaHost = NULL;
+        }
+
+        if (pRuntimeInfo) {
+            pRuntimeInfo->Release();
+            pRuntimeInfo = NULL;
+        }
+    };
+
+    hr = CLRCreateInstance(CLSID_CLRMetaHost, IID_PPV_ARGS(&pMetaHost));
+    if (FAILED(hr)) {
+        Cleanup();
+        return;
+    }
+
+    //HANDLE hProcess = GetCurrentProcess();
+    hr = pMetaHost->GetRuntime(L"v4.0.30319", IID_PPV_ARGS(&pRuntimeInfo));
+    if (FAILED(hr)) {
+        Cleanup();
+        return;
+    }
+
+    BOOL fLoadable;
+
+    hr = pRuntimeInfo->IsLoadable(&fLoadable);
+    if (FAILED(hr) || !fLoadable) {
+        Cleanup();
+        return;
+    }
+
+    ICLRRuntimeHost* pClrRuntimeHost = NULL;
+
+    hr = pRuntimeInfo->GetInterface(CLSID_CLRRuntimeHost, IID_PPV_ARGS(&pClrRuntimeHost));
+    if (FAILED(hr)) {
+        wprintf(L"ICLRRuntimeInfo::GetInterface failed w/hr 0x%08lx\n", hr);
+        Cleanup();
+        return;
+    }
+
+    hr = pClrRuntimeHost->Start();
+    if (FAILED(hr)) {
+        wprintf(L"CLR failed to start w/hr 0x%08lx\n", hr);
+        Cleanup();
+        return;
+    }
+
+    /*IUnknownPtr pAppDomainThunk = NULL;
+    DWORD domainId;
+    hr = pClrRuntimeHost->GetCurrentAppDomainId(&domainId);
+    if (FAILED(hr)) {
+        Cleanup();
+        return;
+    }
+    _AppDomainPtr pDefaultAppDomain = NULL;
+    hr = pAppDomainThunk->QueryInterface(__uuidof(_AppDomain), (VOID**)&pDefaultAppDomain);
+    _AssemblyPtr pAssembly = NULL;
+    pDefaultAppDomain->Load_2(L"DynamicPatcher", &pAssembly);
+    pAssembly->CreateInstance();*/
+
+    DWORD retVal;
+    hr = pClrRuntimeHost->ExecuteInDefaultAppDomain(L"DynamicPatcher.dll",
+        L"DynamicPatcher.Program",
+        L"ActiveFromCLR",
+        L"",
+        &retVal);
+
+    pClrRuntimeHost->Stop();
+
+    if (FAILED(hr)) {
+        Cleanup();
+        return;
+    }
+
+}
+
+
+#define DPGUID L"{4BC759CC-5BB6-4E10-A14E-C813C869CE2F}"
+
+// https://docs.microsoft.com/en-us/dotnet/framework/deployment/in-process-side-by-side-execution?redirectedfrom=MSDN
+void ActiveByCOM() {
+    CoInitialize(NULL);
+    CLSID clsid;
+    HRESULT hr = -1;
+    HRESULT clsidhr = CLSIDFromString(DPGUID, &clsid);
+    if (FAILED(clsidhr))
+    {
+        printf("Failed to construct CLSID from String\n");
+    }
+
+    IUnknown* pUnk = NULL;
+    hr = CoCreateInstance(clsid, NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pUnk));
+    if (FAILED(hr))
+    {
+        printf("Failed CoCreateInstance\n");
+    }
+    else
+    {
+        pUnk->AddRef();
+        printf("Succeeded\n");
+    }
+
+    DISPID dispid;
+    IDispatch* pActive;
+    pUnk->QueryInterface(IID_IDispatch, (void**)&pActive);
+    OLECHAR method_name[]{ OLESTR("Active") };
+    hr = pActive->GetIDsOfNames(IID_NULL, (LPOLESTR*)&method_name, 1, LOCALE_SYSTEM_DEFAULT, &dispid);
+    DISPPARAMS dispparams;
+    dispparams.cNamedArgs = 0;
+    dispparams.cArgs = 0;
+    VARIANTARG* pvarg = NULL;
+    EXCEPINFO* pexcepinfo = NULL;
+    WORD wFlags = DISPATCH_METHOD;
+
+    LPVARIANT pvRet = NULL;
+    UINT* pnArgErr = NULL;
+    hr = pActive->Invoke(dispid, IID_NULL, LOCALE_USER_DEFAULT, wFlags,
+        &dispparams, pvRet, pexcepinfo, pnArgErr);
+    CoUninitialize();
+}
+
+#import "DynamicPatcher.tlb" named_guids raw_interface_only
+using namespace DynamicPatcher;
+
+void ActiveByCOM2() {
+    //CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
+    IPatcherPtr ptr;
+    ptr.CreateInstance(CLSID_Program);
+    //CoUninitialize();
+}
+
+auto Action = []() {
+    if (AllocConsole()) {
+        //using System::Reflection::Assembly;
+        //using System::Activator;
+        //using System::Console;
+
+        //Console::WriteLine("AllocConsole() succeed");
+        ////Assembly^ assembly = Assembly::Load("DynamicPatcher");
+        ////Activator::CreateInstance(assembly->GetType("Program"));
+        ////auto program = gcnew DynamicPatcher::Program();
+        // use clr will trigger many int3 breakpoint, which make syringe work bad
+        //DynamicPatcher::Program::Active();
+        //Console::WriteLine("load succeed");
+
+        //ActiveByCLR();
+        //ActiveByCOM();
+        ActiveByCOM2();
+    }
+    else {
+        MessageBoxW(NULL, TEXT("alloc console error"), TEXT("PatcherLoader"), MB_OK);
+    }
+};
 
 struct alignas(16) hookdecl {
     unsigned int hookAddr;
@@ -16,24 +188,6 @@ struct alignas(16) hookdecl {
 #pragma section(".syhks00", read, write)
 __declspec(allocate(".syhks00")) hookdecl _hk__PatcherLoader_Action = { 0x7CD810, 0x9, "PatcherLoader_Action" };
 
-
-auto Action = []() {
-    if (AllocConsole()) {
-        using System::Reflection::Assembly;
-        using System::Activator;
-        using System::Console;
-
-        Console::WriteLine("AllocConsole() succeed");
-        //Assembly^ assembly = Assembly::Load("DynamicPatcher");
-        //Activator::CreateInstance(assembly->GetType("Program"));
-        //auto program = gcnew DynamicPatcher::Program();
-        DynamicPatcher::Program::Active();
-        Console::WriteLine("load succeed");
-    }
-    else {
-        MessageBoxW(NULL, TEXT("alloc console error"), TEXT("PatcherLoader"), MB_OK);
-    }
-};
 
 typedef DWORD REGISTERS;
 extern "C" __declspec(dllexport) DWORD __cdecl PatcherLoader_Action(REGISTERS * R)
@@ -87,4 +241,3 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 
     return TRUE;
 }
-
