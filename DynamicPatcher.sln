@@ -13,6 +13,10 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PatcherLoader", "PatcherLoader\PatcherLoader.vcxproj", "{A2FFC862-9E25-477D-A34D-4F9699655C29}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PatcherSample", "PatcherSample\PatcherSample.csproj", "{D980E7E9-D71B-4C26-B4F5-51856AD75DE5}"
+	ProjectSection(ProjectDependencies) = postProject
+		{A2FFC862-9E25-477D-A34D-4F9699655C29} = {A2FFC862-9E25-477D-A34D-4F9699655C29}
+		{A487B677-8E11-4802-B2D9-C1D5D53DC069} = {A487B677-8E11-4802-B2D9-C1D5D53DC069}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PatcherYRpp", "PatcherYRpp\PatcherYRpp.csproj", "{4C392077-A5ED-46CC-BC94-E1449610105C}"
 EndProject

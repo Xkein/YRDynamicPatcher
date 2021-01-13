@@ -9,7 +9,15 @@ using System.Threading.Tasks;
 
 namespace DynamicPatcher
 {
-    public class Program
+    [ComVisible(true)]
+    public interface IPatcher
+    {
+    }
+
+    [ClassInterface(ClassInterfaceType.None)]
+    [ComVisible(true), Guid("4BC759CC-5BB6-4E10-A14E-C813C869CE2F")]
+    [ProgId("DynamicPatcher")]
+    public class Program : IPatcher
     {
         static Program()
         {
@@ -26,5 +34,9 @@ namespace DynamicPatcher
 
         // init the class Program and invoke ctor
         static public void Active() { }
+        static public int ActiveFromCLR(string _)
+        {
+            return 1919810;
+        }
     }
 }
