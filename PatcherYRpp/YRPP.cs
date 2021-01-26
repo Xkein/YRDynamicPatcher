@@ -16,6 +16,8 @@ namespace PatcherYRpp
 
         static public ThisCall_0 GetTechnoType = Marshal.GetDelegateForFunctionPointer<ThisCall_0>(new IntPtr(0x6F3270));
 
+        [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
+        public delegate void DestructorFunction(IntPtr pThis);
 
     }
 }

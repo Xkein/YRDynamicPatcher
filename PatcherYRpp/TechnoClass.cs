@@ -15,12 +15,12 @@ namespace PatcherYRpp
 
         [UnmanagedFunctionPointer(CallingConvention.ThisCall)]
         public delegate IntPtr GetTechnoTypeDelegate(ref TechnoClass techno);
-        static public GetTechnoTypeDelegate GetTechnoType = Marshal.GetDelegateForFunctionPointer<GetTechnoTypeDelegate>(new IntPtr(0x6F3270));
+        static public GetTechnoTypeDelegate GetTechnoTypeDlg = Marshal.GetDelegateForFunctionPointer<GetTechnoTypeDelegate>(new IntPtr(0x6F3270));
 
-        public Pointer<TechnoTypeClass> Type { get => GetTechnoType(ref this); }
+        public Pointer<TechnoTypeClass> Type  { get => GetTechnoTypeDlg(ref this); }
 
         [FieldOffset(0)]
-        AbstractClass Base;
+        public ObjectClass Base;
 
         [FieldOffset(540)]
         public Pointer<HouseClass> Owner;
