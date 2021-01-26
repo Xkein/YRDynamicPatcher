@@ -7,13 +7,14 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using DynamicPatcher;
+
 namespace PatcherLoader
 {
     class Program
     {
         static void Main(string[] args)
         {
-            DynamicPatcher.Program.Active();
+            DynamicPatcher.Program.Activate();
             while (true)
             {
                 Thread.Sleep(1000);
