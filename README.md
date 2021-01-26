@@ -25,7 +25,6 @@ We can use it to do something below:
 
 Examples
 --------
-**you can put the cs file of `PatcherSample` to directory `DynamicPatcher`**
 
 ![dynamic_change](Sample/dynamic_change.gif)
 
@@ -53,21 +52,32 @@ namespace PatcherSample
     public class HookTest
     {
         [Hook(HookType.AresHook, Address = 0x6FCFA0, Size = 5)]
-        static public UInt32 ShowFirer(ref REGISTERS R)
+        static public unsafe UInt32 ShowFirer(REGISTERS* R)
         {
-            var pTechno = (IntPtr)R.ESI;
-            var pType = YRPP.GetTechnoType(pTechno);
-            IntPtr IDPtr = Marshal.ReadIntPtr(pType, 96);
-            string ID = Marshal.PtrToStringUni(IDPtr);
-            Console.WriteLine(ID + " fired");
-            var rof = new Random().Next(10, 50);
-            Console.WriteLine("next ROF: " + rof);
-            R.EAX = (uint)rof;
-            Console.WriteLine();
+            ref TechnoClass rTechno = ref ((Pointer<TechnoClass>)R->ESI).Ref;
+            ref TechnoTypeClass rType = ref rTechno.Type.Ref;
+            ref HouseClass rHouse = ref rTechno.Owner.Ref;
+            unsafe
+            {
+                string ID = rType.Base.GetUIName();
+                string HouseID = rHouse.Type.Ref.Base.GetUIName();
+                Logger.Log("{0}({1}) fired", ID, HouseID);
+            };
+            int rof = 1919810;
+            if (rTechno.Owner == HouseClass.Player)
+            {
+                rof = new Random().Next(0, 50);
+            }
+            else
+            {
+                rof = new Random().Next(114, 514);
+            }
+            Logger.Log("next ROF: " + rof);
+            R->EAX = (uint)rof;
+            Logger.Log("");
 
             return 0x6FCFBE;
         }
-
     }
 }
 ```
@@ -81,6 +91,8 @@ the file `DynamicPatcher\config.json` explanation:
 `references` : the assemblies it referenced.
 
 `compiler_options` : the command line to compiler
+
+`force_gc_collect` : forces garbage collection per 10s
 
 
 YRPP
