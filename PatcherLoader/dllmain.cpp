@@ -88,7 +88,7 @@ void ActiveByCLR()
     DWORD retVal;
     hr = pClrRuntimeHost->ExecuteInDefaultAppDomain(L"DynamicPatcher.dll",
         L"DynamicPatcher.Program",
-        L"ActiveFromCLR",
+        L"ActivateFromCLR",
         L"",
         &retVal);
 
@@ -130,7 +130,7 @@ void ActiveByCOM() {
     DISPID dispid;
     IDispatch* pActive;
     pUnk->QueryInterface(IID_IDispatch, (void**)&pActive);
-    OLECHAR method_name[]{ OLESTR("Active") };
+    OLECHAR method_name[]{ OLESTR("Activate") };
     hr = pActive->GetIDsOfNames(IID_NULL, (LPOLESTR*)&method_name, 1, LOCALE_SYSTEM_DEFAULT, &dispid);
     DISPPARAMS dispparams;
     dispparams.cNamedArgs = 0;
@@ -167,7 +167,7 @@ auto Action = []() {
         ////Activator::CreateInstance(assembly->GetType("Program"));
         ////auto program = gcnew DynamicPatcher::Program();
         // use clr will trigger many int3 breakpoint, which make syringe work bad
-        //DynamicPatcher::Program::Active();
+        //DynamicPatcher::Program::Activate();
         //Console::WriteLine("load succeed");
 
         //ActiveByCLR();
