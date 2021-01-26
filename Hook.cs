@@ -133,12 +133,12 @@ namespace DynamicPatcher
         }
 
 		// avoid GC collect
-		Delegate callableDlg;
+		public Delegate CallableDlg { get; set; }
 		public Delegate GetCallableDlg()
         {
-			if(callableDlg != null)
+			if(CallableDlg != null)
             {
-				return callableDlg;
+				return CallableDlg;
 			}
 
 			Delegate dlg = null;
@@ -180,7 +180,7 @@ namespace DynamicPatcher
 				}
 			}
 
-			callableDlg = dlg;
+			CallableDlg = dlg;
 
 			return dlg;
 		}

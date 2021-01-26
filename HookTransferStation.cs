@@ -48,6 +48,8 @@ namespace DynamicPatcher
 		virtual public void UnHook(HookInfo info)
 		{
 			HookInfos.Remove(info);
+			// delegate unavailable
+			info.CallableDlg = null;
 			UnHook();
 			MainHookInfo = HookInfos.Max();
 
