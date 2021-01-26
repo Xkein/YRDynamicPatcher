@@ -21,4 +21,26 @@ namespace PatcherYRpp
         public byte G;
         public byte B;
     }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct CoordStruct
+    {
+        public CoordStruct(int x, int y, int z)
+        {
+            X = x;
+            Y = y;
+            Z = z;
+        }
+
+
+        public static bool operator ==(CoordStruct value1, CoordStruct value2) => (value1 != value2) == false;
+        public static bool operator !=(CoordStruct value1, CoordStruct value2)
+        {
+            return value1.X != value2.X && value1.Y != value2.Y && value1.Z != value2.Z;
+        }
+
+        public int X;
+        public int Y;
+        public int Z;
+    }
 }
