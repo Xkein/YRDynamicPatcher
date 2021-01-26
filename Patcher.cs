@@ -12,14 +12,17 @@ using System.Threading.Tasks;
 
 namespace DynamicPatcher
 {
-    class Patcher
+    /// <summary>The class of DynamicPatcher.</summary>
+    public class Patcher
     {
-
         List<FileSystemWatcher> watchers = new List<FileSystemWatcher>();
-        Compiler compiler = new Compiler();
-        Dictionary<string, Assembly> fileAssembly = new Dictionary<string, Assembly>();
 
-        public void Init(string workDir)
+        Compiler Compiler { get; } = new Compiler();
+
+        /// <summary>The map of 'filename -> assembly'.</summary>
+        public Dictionary<string, Assembly> FileAssembly { get; } = new Dictionary<string, Assembly>();
+
+        internal void Init(string workDir)
         {
             Logger.WriteLine += (string str) => Console.WriteLine(str);
 
@@ -45,18 +48,37 @@ namespace DynamicPatcher
                         HookInfo.TryCatchCallable = true;
                     }
 
-                    compiler.Load(json);
+                    if (json["force_gc_collect"].ToObject<bool>())
+                    {
+                        Task.Run(() =>
+                        {
+                            while (true)
+                            {
+                                Logger.Log("Sleep 10s.");
+                                Thread.Sleep(TimeSpan.FromSeconds(10));
+                                Logger.Log("GC collect.");
+                                GC.Collect();
+                                GC.WaitForPendingFinalizers();
+                                GC.WaitForFullGCComplete();
+                                Logger.Log("GC collect finish.");
+                            }
+                        });
+                    }
+
+                    Compiler.Load(json);
                 }
             }
 
             stopwatch.Start();
         }
 
+        /// <summary>Create a thread watching any changes of directory.</summary>
         public void StartWatchPath(string path)
         {
             Task.Run(() => WatchPath(path));
         }
 
+        /// <summary>Watch any changes of directory.</summary>
         public void WatchPath(string path)
         {
             if (Directory.Exists(path) == false)
@@ -103,7 +125,7 @@ namespace DynamicPatcher
         {
             try
             {
-                return compiler.Compile(path);
+                return Compiler.Compile(path);
             }
             catch (Exception e)
             {
@@ -176,15 +198,15 @@ namespace DynamicPatcher
 
         void RefreshAssembly(string path, Assembly assembly)
         {
-            if (fileAssembly.ContainsKey(path))
+            if (FileAssembly.ContainsKey(path))
             {
-                Logger.Log("replace assembly {0} with {1}", fileAssembly[path].FullName, assembly.FullName);
-                RemoveAssemblyHook(fileAssembly[path]);
-                fileAssembly[path] = assembly;
+                Logger.Log("replace assembly '{0}' with '{1}'", FileAssembly[path].FullName, assembly.FullName);
+                RemoveAssemblyHook(FileAssembly[path]);
+                FileAssembly[path] = assembly;
             }
             else
             {
-                fileAssembly.Add(path, assembly);
+                FileAssembly.Add(path, assembly);
             }
             ApplyAssembly(assembly);
         }
@@ -199,75 +221,80 @@ namespace DynamicPatcher
             {
                 Logger.Log("in class {0}: ", type.FullName);
 
-                MethodInfo[] methods = type.GetMethods();
-                foreach (MethodInfo method in methods)
+                MemberInfo[] members = type.GetMembers();
+                foreach (MemberInfo member in members)
                 {
-                    if (method.IsDefined(typeof(HookAttribute), false))
+                    if (member.IsDefined(typeof(HookAttribute), false))
                     {
                         Logger.Log("");
-                        ApplyHook(method);
+                        ApplyHook(member);
                     }
                 }
             }
             Logger.Log("-----------------------------------");
         }
 
-        Dictionary<string, HookTransferStation> transferStations = new Dictionary<string, HookTransferStation>();
+        Dictionary<int, HookTransferStation> transferStations = new Dictionary<int, HookTransferStation>();
 
-        void ApplyHook(MethodInfo method)
+        void ApplyHook(MemberInfo member)
         {
-            var info = new HookInfo(method);
-            HookAttribute hook = info.GetHookAttribute();
-
-            Logger.Log("appling {3} hook: {0:X}, {1}, {2:X}", hook.Address, method.Name, hook.Size, hook.Type);
-
-            try
+            HookAttribute[] hooks = HookInfo.GetHookAttributes(member);
+            foreach (var hook in hooks)
             {
-                string key = info.Method.Name;
+                var info = new HookInfo(member, hook);
 
-                HookTransferStation station = null;
+                Logger.Log("appling {3} hook: {0:X}, {1}, {2:X}", hook.Address, member.Name, hook.Size, hook.Type);
 
-                if (transferStations.ContainsKey(key))
+                try
                 {
-                    station = transferStations[key];
-                    if (hook.Type == station.HookInfo.GetHookAttribute().Type)
+                    int key = hook.Address;
+
+                    HookTransferStation station = null;
+
+                    // use old station if exist
+                    if (transferStations.ContainsKey(key))
                     {
-                        Logger.Log("replace key '{0}'", key);
-                        station.SetHook(info);
+                        station = transferStations[key];
+                        if (station.HookInfos.Count <= 0 || hook.Type == station.MainHookInfo.GetHookAttribute().Type)
+                        {
+                            Logger.Log("insert hook to key '{0:X}'", key);
+                            station.SetHook(info);
+                        }
+                        else
+                        {
+                            Logger.Log("remove key '{0:X}' because of hook type mismatch. ", key);
+                            transferStations.Remove(key);
+                            station = null;
+                        }
                     }
-                    else
+
+                    // create new station
+                    if (station == null)
                     {
-                        Logger.Log("remove key '{0}' because of hook type mismatch. ", key);
-                        transferStations.Remove(key);
-                        station = null;
+                        Logger.Log("add key '{0:X}'", key);
+                        switch (hook.Type)
+                        {
+                            case HookType.AresHook:
+                                station = new AresHookTransferStation(info);
+                                break;
+                            case HookType.SimpleJumpToRet:
+                            case HookType.DirectJumpToHook:
+                                station = new JumpHookTransferStation(info);
+                                break;
+                            default:
+                                Logger.Log("found unkwnow hook: " + member.Name);
+                                return;
+                        }
+
+                        transferStations.Add(key, station);
                     }
+
+                    ASMWriter.FlushInstructionCache(hook.Address, Math.Max(hook.Size, 5));
                 }
-                
-                if(station == null)
+                catch (Exception e)
                 {
-                    Logger.Log("add key '{0}'", key);
-                    switch (hook.Type)
-                    {
-                        case HookType.AresHook:
-                            station = new AresHookTransferStation(info);
-                            break;
-                        case HookType.SimpleJumpToRet:
-                        case HookType.DirectJumpToHook:
-                            station = new JumpHookTransferStation(info);
-                            break;
-                        default:
-                            Logger.Log("found unkwnow hook: " + method.Name);
-                            return;
-                    }
-
-                    transferStations.Add(key, station);
+                    Logger.Log("hook applied error: " + e.Message);
                 }
-
-                ASMWriter.FlushInstructionCache(hook.Address, Math.Max(hook.Size, 5));
-            }
-            catch (Exception e)
-            {
-                Logger.Log("hook applied error: " + e.Message);
             }
         }
 
@@ -276,18 +303,23 @@ namespace DynamicPatcher
             Type[] types = assembly.GetTypes();
             foreach (Type type in types)
             {
-                MethodInfo[] methods = type.GetMethods();
-                foreach (MethodInfo method in methods)
+                MemberInfo[] members = type.GetMembers();
+                foreach (MemberInfo member in members)
                 {
-                    if (method.IsDefined(typeof(HookAttribute), false))
+                    if (member.IsDefined(typeof(HookAttribute), false))
                     {
-                        var info = new HookInfo(method);
-                        string key = info.Method.Name;
-
-                        if (transferStations.ContainsKey(key))
+                        HookAttribute[] hooks = HookInfo.GetHookAttributes(member);
+                        foreach (var hook in hooks)
                         {
-                            Logger.Log("remove hook: " + info.Method.Name);
-                            transferStations[key].UnHook();
+                            var info = new HookInfo(member, hook);
+                            int key = info.GetHookAttribute().Address;
+
+                            if (transferStations.ContainsKey(key))
+                            {
+                                Logger.Log("remove hook: " + info.Method.Name);
+                                info = transferStations[key].HookInfos.First(cur => cur.Member == member && cur.TransferStation == transferStations[key]);
+                                transferStations[key].UnHook(info);
+                            }
                         }
                     }
                 }

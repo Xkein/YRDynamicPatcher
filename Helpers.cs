@@ -6,15 +6,20 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 
 namespace DynamicPatcher
 {
+    /// <summary>Allocate memory on target process.</summary>
     public class MemoryHandle : IDisposable
     {
+        /// <summary>The address of memory</summary>
         public int Memory { get; set; }
+        /// <summary>The size of memory</summary>
         public int Size { get; private set; }
 
         private bool disposedValue;
+        /// <summary>Allocate fixed size memory on target process.</summary>
         public MemoryHandle(int size)
         {
             var memory = MemoryHelper.AllocMemory(size);
@@ -26,6 +31,7 @@ namespace DynamicPatcher
             Size = size;
         }
 
+        /// <summary>Free memory.</summary>
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)
@@ -38,10 +44,12 @@ namespace DynamicPatcher
                 disposedValue = true;
             }
         }
+        /// <summary>Free memory.</summary>
         ~MemoryHandle()
         {
             Dispose(disposing: false);
         }
+        /// <summary>Free memory.</summary>
         public void Dispose()
         {
             Dispose(disposing: true);
@@ -49,7 +57,8 @@ namespace DynamicPatcher
         }
     }
 
-    public class MemoryHelper
+    /// <summary>The memory helper on target process.</summary>
+    public unsafe class MemoryHelper
     {
         [DllImport("kernel32.dll")]
         static extern bool ReadProcessMemory(IntPtr hProcess, int lpBaseAddress, byte[] lpBuffer, int dwSize, ref int lpNumberOfBytesRead);
@@ -57,41 +66,40 @@ namespace DynamicPatcher
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern bool WriteProcessMemory(IntPtr hProcess, int lpBaseAddress, byte[] lpBuffer, int dwSize, ref int lpNumberOfBytesWritten);
 
+        /// <summary>Write byte[] to address.</summary>
         static public bool Write(int address, byte[] buffer, int length)
         {
             int tmp = 0;
             return WriteProcessMemory(Utilities.GetProcessHandle(), address, buffer, length, ref tmp);
         }
 
+        /// <summary>Read byte[] from address.</summary>
         static public bool Read(int address, byte[] buffer, int length)
         {
             int tmp = 0;
             return ReadProcessMemory(Utilities.GetProcessHandle(), address, buffer, length, ref tmp);
         }
 
-        static public bool Write<T>(int address, T obj) where T : unmanaged
+        /// <summary>Write T to address.</summary>
+        static public bool Write<T>(int address, T obj)
         {
-            int size = Marshal.SizeOf(obj);
-            IntPtr buffer = Marshal.AllocHGlobal(size);
-            Marshal.StructureToPtr(obj, buffer, false);
-            byte[] bytes = new byte[size];
-            Marshal.Copy(buffer, bytes, 0, size);
-            Marshal.FreeHGlobal(buffer);
-
-            return Write(address, bytes, bytes.Length);
+            int size = Unsafe.SizeOf<T>();
+            IntPtr buffer = (IntPtr)Unsafe.AsPointer(ref obj);
+            Span<byte> bytes = new Span<byte>(buffer.ToPointer(), size);
+            
+            return Write(address, bytes.ToArray(), size);
         }
-        static public bool Read<T>(int address, T obj) where T : unmanaged
+
+        /// <summary>Read T from address.</summary>
+        static public bool Read<T>(int address, ref T obj)
         {
-            int size = Marshal.SizeOf(obj);
-            IntPtr buffer = Marshal.AllocHGlobal(size);
+            int size = Unsafe.SizeOf<T>();
+            IntPtr buffer = (IntPtr)Unsafe.AsPointer(ref obj);
             byte[] bytes = new byte[size];
 
-            bool ret = Read(address, bytes, bytes.Length);
+            bool ret = Read(address, bytes, size);
 
             Marshal.Copy(bytes, 0, buffer, size);
-            Marshal.PtrToStructure(buffer, obj);
-            Marshal.FreeHGlobal(buffer);
-
             return ret;
         }
 
@@ -106,6 +114,8 @@ namespace DynamicPatcher
         }
         [DllImport("kernel32.dll")]
         static extern int VirtualAllocEx(IntPtr hProcess, int lpBaseAddress, int dwSize, AllocationType flAllocationType, Protect flProtect);
+
+        /// <summary>Allocate fixed size memory on target process.</summary>
         static public int AllocMemory(int size)
         {
             return VirtualAllocEx(Utilities.GetProcessHandle(), 0, size, AllocationType.MEM_RESERVE | AllocationType.MEM_COMMIT, Protect.PAGE_EXECUTE_READWRITE);
@@ -117,6 +127,8 @@ namespace DynamicPatcher
         }
         [DllImport("kernel32.dll")]
         static extern bool VirtualFreeEx(IntPtr hProcess, int lpBaseAddress, int dwSize, FreeType flFreeType);
+
+        /// <summary>Free memory on target process.</summary>
         static public bool FreeMemory(int address)
         {
             return VirtualFreeEx(Utilities.GetProcessHandle(), address, 0, FreeType.MEM_RELEASE);
@@ -160,27 +172,15 @@ namespace DynamicPatcher
 
         static public void WriteJump(JumpStruct jump)
         {
-            byte[] buffer = ASM.Jmp.Clone() as byte[];
-            var stream = new MemoryStream(buffer);
-            using (var writer = new BinaryWriter(stream))
-            {
-                stream.Seek(1, SeekOrigin.Begin);
-                writer.Write(jump.Offset);
-
-                MemoryHelper.Write(jump.From, buffer, buffer.Length);
-            }
+            byte[] buffer = ASM.Jmp;
+            MemoryHelper.Write(jump.From, buffer, buffer.Length);
+            MemoryHelper.Write(jump.From + 1, jump.Offset);
         }
         static public void WriteCall(JumpStruct jump)
         {
-            byte[] buffer = ASM.Call.Clone() as byte[];
-            var stream = new MemoryStream(buffer);
-            using (var writer = new BinaryWriter(stream))
-            {
-                stream.Seek(1, SeekOrigin.Begin);
-                writer.Write(jump.Offset);
-
-                MemoryHelper.Write(jump.From, buffer, buffer.Length);
-            }
+            byte[] buffer = ASM.Call;
+            MemoryHelper.Write(jump.From, buffer, buffer.Length);
+            MemoryHelper.Write(jump.From + 1, jump.Offset);
         }
     }
 
