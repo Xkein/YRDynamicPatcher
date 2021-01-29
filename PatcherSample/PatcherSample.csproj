@@ -48,7 +48,6 @@
     <Compile Include="Container.cs" />
     <Compile Include="FogOfWar.cs" />
     <Compile Include="INIParser.cs" />
-    <Compile Include="Sample.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TechnoExt.cs" />
     <Compile Include="ScriptManager.cs" />
