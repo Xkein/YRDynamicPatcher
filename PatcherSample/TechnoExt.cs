@@ -13,7 +13,23 @@ namespace PatcherSample
     {
         public static Container<TechnoExt, TechnoClass> ExtMap = new Container<TechnoExt, TechnoClass>("TechnoClass");
 
-        public CoordStruct LastLocation;
+        internal TechnoScriptable scriptable;
+        public TechnoScriptable Scriptable
+        { 
+            get
+            {
+                if(scriptable == null)
+                {
+                    if(Type.Script != null)
+                    {
+                        scriptable = ScriptManager.GetScriptable(Type.Script, this) as TechnoScriptable;
+                    }
+                }
+                return scriptable;
+            }
+        }
+
+        public TechnoTypeExt Type { get => TechnoTypeExt.ExtMap.Find(OwnerObject.Ref.Type); }
 
         public TechnoExt(Pointer<TechnoClass> OwnerObject) : base(OwnerObject)
         {
