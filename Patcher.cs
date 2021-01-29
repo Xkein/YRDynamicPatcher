@@ -12,15 +12,38 @@ using System.Threading.Tasks;
 
 namespace DynamicPatcher
 {
+    /// <summary>Provides data for the DynamicPatcher.Patcher.AssemblyRefresh event.</summary>
+    public class AssemblyRefreshEventArgs : EventArgs
+    {
+        /// <summary>Initializes a new instance of the DynamicPatcher.AssemblyRefreshEventArgs class.</summary>
+        public AssemblyRefreshEventArgs(string fileName, Assembly refreshedAssembly)
+        {
+            FileName = fileName;
+            RefreshedAssembly = refreshedAssembly;
+        }
+
+        /// <summary>Gets string that represents the currently file name.</summary>
+        public string FileName { get; private set; }
+
+        /// <summary>Gets an System.Reflection.Assembly that represents the currently refreshed assembly.</summary>
+        public Assembly RefreshedAssembly { get; private set; }
+    }
+    /// <summary>Represents the method that handles the DynamicPatcher.Patcher.AssemblyRefresh event of an DynamicPatcher.Patcher.</summary>
+    public delegate void AssemblyRefreshEventHandler(object sender, AssemblyRefreshEventArgs args);
+
     /// <summary>The class of DynamicPatcher.</summary>
     public class Patcher
     {
         List<FileSystemWatcher> watchers = new List<FileSystemWatcher>();
 
         Compiler Compiler { get; } = new Compiler();
+        CompilationManager CompilationManager { get; } = new CompilationManager();
 
         /// <summary>The map of 'filename -> assembly'.</summary>
         public Dictionary<string, Assembly> FileAssembly { get; } = new Dictionary<string, Assembly>();
+
+        /// <summary>Occurs when DynamicPatcher.Patcher.RefreshAssembly.</summary>
+        public event AssemblyRefreshEventHandler AssemblyRefresh;
 
         internal void Init(string workDir)
         {
@@ -28,7 +51,8 @@ namespace DynamicPatcher
 
             var logFileStream = new FileStream(Path.Combine(workDir, "patcher.log"), FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
             var logFileWriter = new StreamWriter(logFileStream);
-            Logger.WriteLine += (string str) => {
+            Logger.WriteLine += (string str) =>
+            {
                 logFileWriter.WriteLine(str); logFileWriter.Flush();
             };
 
@@ -65,7 +89,8 @@ namespace DynamicPatcher
                         });
                     }
 
-                    Compiler.Load(json);
+                    CompilationManager.Load(json);
+                    //Compiler.Load(json);
                 }
             }
 
@@ -125,7 +150,8 @@ namespace DynamicPatcher
         {
             try
             {
-                return Compiler.Compile(path);
+                return CompilationManager.Compile(path);
+                //return Compiler.Compile(path);
             }
             catch (Exception e)
             {
@@ -209,6 +235,8 @@ namespace DynamicPatcher
                 FileAssembly.Add(path, assembly);
             }
             ApplyAssembly(assembly);
+
+            AssemblyRefresh?.Invoke(this, new AssemblyRefreshEventArgs(Path.GetFileNameWithoutExtension(path), assembly));
         }
 
         void ApplyAssembly(Assembly assembly)
@@ -232,6 +260,7 @@ namespace DynamicPatcher
                 }
             }
             Logger.Log("-----------------------------------");
+            Logger.Log("");
         }
 
         Dictionary<int, HookTransferStation> transferStations = new Dictionary<int, HookTransferStation>();

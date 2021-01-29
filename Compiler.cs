@@ -31,14 +31,15 @@ namespace DynamicPatcher
 
         public void Load(JObject json)
         {
-            var references = json["references"].ToArray();
+            var configs = json["compiler"];
+            var references = configs["references"].ToArray();
 
             foreach (var token in references)
             {
                 Parameters.ReferencedAssemblies.Add(token.ToString());
             }
 
-            var options = json["compiler_options"].ToArray();
+            var options = configs["compiler_options"].ToArray();
 
             foreach (var token in options)
             {
@@ -107,7 +108,6 @@ namespace DynamicPatcher
         public Assembly Compile(string path)
         {
             Logger.Log("compiling: " + path);
- ;
             
             CompilerResults results = Provider.CompileAssemblyFromFile(Parameters, path);
 
