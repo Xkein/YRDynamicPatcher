@@ -99,6 +99,13 @@ YRPP
 --------
 The c# style YRPP is WIP.
 
+PatcherSample
+--------
+PatcherSample is a sample extension base on YRDynamicPatcher.
+It has some simple feature below:
+- TechnoScript
+  - OnUpdate
+- Update script when recompiling (unsafe)
 
 Legal
 -----
