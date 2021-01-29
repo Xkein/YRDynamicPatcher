@@ -59,7 +59,6 @@
   <ItemGroup>
     <Compile Include="ASM.cs" />
     <Compile Include="CompilationManager.cs" />
-    <Compile Include="Compiler.cs" />
     <Compile Include="Hook.cs" />
     <Compile Include="HookTransferStation.cs" />
     <Compile Include="Logger.cs" />
