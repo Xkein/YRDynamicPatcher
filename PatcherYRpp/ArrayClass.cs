@@ -23,6 +23,7 @@ namespace PatcherYRpp
             return Helpers.GetSpan<T>(Items, Count);
         }
 
+        private IntPtr Vfptr;
         public IntPtr Items;
         public int Capacity;
         public bool IsInitialized;
