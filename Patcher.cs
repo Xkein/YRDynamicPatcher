@@ -36,7 +36,6 @@ namespace DynamicPatcher
     {
         List<FileSystemWatcher> watchers = new List<FileSystemWatcher>();
 
-        Compiler Compiler { get; } = new Compiler();
         CompilationManager CompilationManager { get; } = new CompilationManager();
 
         /// <summary>The map of 'filename -> assembly'.</summary>
@@ -90,7 +89,6 @@ namespace DynamicPatcher
                     }
 
                     CompilationManager.Load(json);
-                    //Compiler.Load(json);
                 }
             }
 
@@ -151,7 +149,6 @@ namespace DynamicPatcher
             try
             {
                 return CompilationManager.Compile(path);
-                //return Compiler.Compile(path);
             }
             catch (Exception e)
             {
