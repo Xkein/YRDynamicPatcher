@@ -3,6 +3,7 @@ using PatcherYRpp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,7 +15,7 @@ namespace PatcherSample
     {
         public static Container<TechnoTypeExt, TechnoTypeClass> ExtMap = new Container<TechnoTypeExt, TechnoTypeClass>("TechnoTypeClass");
 
-        public string Script_Update;
+        public Script Script;
 
         public TechnoTypeExt(Pointer<TechnoTypeClass> OwnerObject) : base(OwnerObject)
         {
@@ -26,10 +27,11 @@ namespace PatcherSample
             INI_EX exINI = new INI_EX(pINI);
             string section = OwnerObject.Ref.Base.GetID();
 
-            exINI.Read(section, "Script.Update", ref Script_Update);
-            if(Script_Update != null)
+            string scriptName = null;
+            exINI.Read(section, "Script", ref scriptName);
+            if(scriptName != null)
             {
-                Script_Update = Script_Update.Substring(0);
+                Script = ScriptManager.GetScript(scriptName);
             }
         }
 
