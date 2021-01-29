@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
+using System.Web.Caching;
 
 namespace PatcherYRpp
 {
@@ -80,6 +81,25 @@ namespace PatcherYRpp
             return Unsafe.As<TFrom, TTo>(ref obj);
         //    var ptr = new Pointer<TTo>(Pointer<TFrom>.AsPointer(ref obj));
         //    return ptr.Ref;
+        }
+
+        static Cache VirtualFunctionCache = new Cache();
+        static public T GetVirtualFunction<T>(IntPtr pThis, int index) where T : Delegate
+        {
+            Pointer<Pointer<IntPtr>> pVfptr = pThis;
+            Pointer<IntPtr> vfptr = pVfptr.Data;
+            IntPtr address = vfptr[index];
+
+            string key = address.ToString();
+
+            var ret = VirtualFunctionCache.Get(key);
+            if (ret == null)
+            {
+                VirtualFunctionCache.Insert(key, Marshal.GetDelegateForFunctionPointer<T>(address));
+                ret = VirtualFunctionCache.Get(key);
+            }
+
+            return ret as T;
         }
     }
 }
