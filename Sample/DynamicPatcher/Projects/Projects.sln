@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30907.101
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PatcherYRpp", "YRpp\PatcherYRpp.csproj", "{4C392077-A5ED-46CC-BC94-E1449610105C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Extension", "Extension\Extension.csproj", "{957E3C34-E736-4145-8B05-2DC1BCFA79E1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4C392077-A5ED-46CC-BC94-E1449610105C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C392077-A5ED-46CC-BC94-E1449610105C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C392077-A5ED-46CC-BC94-E1449610105C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C392077-A5ED-46CC-BC94-E1449610105C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{957E3C34-E736-4145-8B05-2DC1BCFA79E1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{957E3C34-E736-4145-8B05-2DC1BCFA79E1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{957E3C34-E736-4145-8B05-2DC1BCFA79E1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{957E3C34-E736-4145-8B05-2DC1BCFA79E1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9A220232-1DD0-44BB-9D02-63607321B3BB}
+	EndGlobalSection
+EndGlobal

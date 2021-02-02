@@ -1,0 +1,5 @@
+{
+    "show_attach_window" : true,
+    "try_catch_callable" : true,
+    "force_gc_collect" : false
+}

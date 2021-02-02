@@ -1,0 +1,9 @@
+{
+    "references" : [
+        "System.dll",
+        "System.Core.dll",
+        "System.Data.dll",
+        "PatcherYRpp.dll",
+        "Extension.dll"
+    ] 
+}
