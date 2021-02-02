@@ -3,6 +3,7 @@ using System.CodeDom;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,7 +11,7 @@ using System.Threading.Tasks;
 namespace DynamicPatcher
 {
     /// <summary>Provides activation way for DynamicPatcher.</summary>
-    [ComVisible(true)]
+    [ComVisible(true), Guid("531A1F37-EA8F-4E60-975E-11D61EE68702")]
     public interface IPatcher
     {
     }
@@ -31,10 +32,62 @@ namespace DynamicPatcher
 
         private static void DllMain()
         {
-            Patcher = new Patcher();
             string workDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DynamicPatcher");
+            librariesDirectory = Path.Combine(workDir, "Libraries");
+            AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
+            //AppDomain.CurrentDomain.AssemblyLoad += CurrentDomain_AssemblyLoad;
+
+            Patcher = new Patcher();
             Patcher.Init(workDir);
             Patcher.StartWatchPath(workDir);
+        }
+
+        private static void CurrentDomain_AssemblyLoad(object sender, AssemblyLoadEventArgs args)
+        {
+            Console.WriteLine("loading assembly: " + args.LoadedAssembly.FullName);
+        }
+
+        private static string librariesDirectory;
+        private static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
+        {
+            Assembly assembly = null;
+            Func<string, bool> TryLoad = (string path) =>
+            {
+                if (File.Exists(path))
+                {
+                    //Console.WriteLine("loading assembly: " + path);
+                    assembly = Assembly.LoadFile(path);
+                    return true;
+                }
+
+                return false;
+            };
+
+            string fileName = args.Name.Split(',')[0] + ".dll";
+
+            if (TryLoad(Path.Combine(librariesDirectory, fileName)))
+            {
+                return assembly;
+            }
+
+            if (TryLoad(Helpers.GetAssemblyPath(fileName)))
+            {
+                return assembly;
+            }
+
+            return null;
+        }
+
+        private static void LoadLibraries(string workDir)
+        {
+            string dir = Path.Combine(workDir, "Libraries");
+            var info = new DirectoryInfo(dir);
+            var files = info.GetFiles("*.dll");
+
+            foreach (FileInfo file in files)
+            {
+                Assembly.LoadFile(file.FullName);
+            }
         }
 
         /// <summary>Init the class Program and invoke ctor.</summary>

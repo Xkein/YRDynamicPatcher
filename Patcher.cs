@@ -36,7 +36,7 @@ namespace DynamicPatcher
     {
         List<FileSystemWatcher> watchers = new List<FileSystemWatcher>();
 
-        CompilationManager CompilationManager { get; } = new CompilationManager();
+        private CompilationManager CompilationManager { get; set; }
 
         /// <summary>The map of 'filename -> assembly'.</summary>
         public Dictionary<string, Assembly> FileAssembly { get; } = new Dictionary<string, Assembly>();
@@ -44,10 +44,13 @@ namespace DynamicPatcher
         /// <summary>Occurs when DynamicPatcher.Patcher.RefreshAssembly.</summary>
         public event AssemblyRefreshEventHandler AssemblyRefresh;
 
-        internal void Init(string workDir)
+        internal Patcher()
         {
             Logger.WriteLine += (string str) => Console.WriteLine(str);
+        }
 
+        internal void Init(string workDir)
+        {
             var logFileStream = new FileStream(Path.Combine(workDir, "patcher.log"), FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
             var logFileWriter = new StreamWriter(logFileStream);
             Logger.WriteLine += (string str) =>
@@ -55,41 +58,44 @@ namespace DynamicPatcher
                 logFileWriter.WriteLine(str); logFileWriter.Flush();
             };
 
-            using (StreamReader file = File.OpenText(Path.Combine(workDir, "config.json")))
+            try
             {
-                using (JsonTextReader reader = new JsonTextReader(file))
+                using StreamReader file = File.OpenText(Path.Combine(workDir, "dynamicpatcher.config.json"));
+                using JsonTextReader reader = new JsonTextReader(file);
+                var json = JObject.Load(reader);
+
+                if (json["show_attach_window"].ToObject<bool>())
                 {
-                    var json = JObject.Load(reader);
-
-                    if (json["show_attach_window"].ToObject<bool>())
-                    {
-                        System.Windows.Forms.MessageBox.Show("Attach Me", "Dynamic Patcher");
-                    }
-
-                    if (json["try_catch_callable"].ToObject<bool>())
-                    {
-                        HookInfo.TryCatchCallable = true;
-                    }
-
-                    if (json["force_gc_collect"].ToObject<bool>())
-                    {
-                        Task.Run(() =>
-                        {
-                            while (true)
-                            {
-                                Logger.Log("Sleep 10s.");
-                                Thread.Sleep(TimeSpan.FromSeconds(10));
-                                Logger.Log("GC collect.");
-                                GC.Collect();
-                                GC.WaitForPendingFinalizers();
-                                GC.WaitForFullGCComplete();
-                                Logger.Log("GC collect finish.");
-                            }
-                        });
-                    }
-
-                    CompilationManager.Load(json);
+                    System.Windows.Forms.MessageBox.Show("Attach Me", "Dynamic Patcher");
                 }
+
+                if (json["try_catch_callable"].ToObject<bool>())
+                {
+                    HookInfo.TryCatchCallable = true;
+                }
+
+                if (json["force_gc_collect"].ToObject<bool>())
+                {
+                    Task.Run(() =>
+                    {
+                        while (true)
+                        {
+                            Logger.Log("Sleep 10s.");
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
+                            Logger.Log("GC collect.");
+                            GC.Collect();
+                            GC.WaitForPendingFinalizers();
+                            GC.WaitForFullGCComplete();
+                            Logger.Log("GC collect finish.");
+                        }
+                    });
+                }
+
+                CompilationManager = new CompilationManager(workDir);
+            }
+            catch (Exception e)
+            {
+                Helpers.PrintException(e);
             }
 
             stopwatch.Start();
@@ -152,7 +158,8 @@ namespace DynamicPatcher
             }
             catch (Exception e)
             {
-                Logger.Log("compile error: " + e.Message);
+                Logger.Log("compile error!");
+                Helpers.PrintException(e);
                 return null;
             }
         }
@@ -206,15 +213,20 @@ namespace DynamicPatcher
             foreach (var file in list)
             {
                 string filePath = file.FullName;
-                var assembly = TryCompile(filePath);
+                var project = CompilationManager.GetProjectFromFile(filePath);
+                // skip because already compiled
+                if (project == null)
+                {
+                    var assembly = TryCompile(filePath);
 
-                if (assembly != null)
-                {
-                    RefreshAssembly(filePath, assembly);
-                }
-                else
-                {
-                    Logger.Log("first compile error: " + file.FullName);
+                    if (assembly != null)
+                    {
+                        RefreshAssembly(filePath, assembly);
+                    }
+                    else
+                    {
+                        Logger.Log("first compile error: " + file.FullName);
+                    }
                 }
             }
         }
@@ -319,7 +331,8 @@ namespace DynamicPatcher
                 }
                 catch (Exception e)
                 {
-                    Logger.Log("hook applied error: " + e.Message);
+                    Logger.Log("hook applied error!");
+                    Helpers.PrintException(e);
                 }
             }
         }

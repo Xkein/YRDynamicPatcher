@@ -62,6 +62,7 @@ namespace DynamicPatcher
             return YRHandle;
         }
 
+        public static List<string> AdditionalSearchPath { get; } = new List<string>();
         public static string GetValidFullPath(string fileName)
         {
             string fullPath = Path.GetFullPath(fileName);
@@ -80,12 +81,22 @@ namespace DynamicPatcher
                 return fullPath;
             }
 
+            foreach (string dir in AdditionalSearchPath)
+            {
+                fullPath = Path.Combine(dir, fileName);
+                // found in additional directory
+                if (File.Exists(fullPath))
+                {
+                    return fullPath;
+                }
+            }
+
             string variable = Environment.GetEnvironmentVariable("Path");
             string[] dirs = variable.Split(';');
 
             foreach (string dir in dirs)
             {
-                fullPath = Path.Combine(directory, fileName);
+                fullPath = Path.Combine(dir, fileName);
                 // found in environment variable directory
                 if (File.Exists(fullPath))
                 {
@@ -93,12 +104,11 @@ namespace DynamicPatcher
                 }
             }
 
-            return fullPath;
+            return null;
         }
 
-        public static string GetAssemblyPath(string fileName)
+        public static Assembly GetLoadedAssembly(string name)
         {
-            string name = Path.GetFileNameWithoutExtension(fileName);
             Assembly[] loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
 
             foreach (Assembly assembly in loadedAssemblies)
@@ -106,12 +116,43 @@ namespace DynamicPatcher
                 AssemblyName assemblyName = assembly.GetName();
                 if (assemblyName.Name == name)
                 {
-                    return assembly.Location;
+                    return assembly;
                 }
+            }
+
+            return null;
+        }
+
+        public static string GetAssemblyPath(string fileName)
+        {
+            string name = Path.GetFileNameWithoutExtension(fileName);
+
+            Assembly assembly = GetLoadedAssembly(name);
+            if (assembly != null)
+            {
+                return assembly.Location;
             }
 
             string path = Helpers.GetValidFullPath(fileName);
             return path;
+        }
+
+        public static void PrintException(Exception e)
+        {
+            Logger.Log("exception info: ");
+            Logger.Log("Message: " + e.Message);
+            Logger.Log("Source: " + e.Source);
+            Logger.Log("TargetSite.Name: " + e.TargetSite.Name);
+            Logger.Log("Stacktrace: " + e.StackTrace);
+
+            if(e.InnerException != null)
+            {
+                PrintException(e.InnerException);
+            }
+            else
+            {
+                Logger.Log("");
+            }
         }
     }
 };
