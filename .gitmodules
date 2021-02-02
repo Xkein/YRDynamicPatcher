@@ -1,0 +1,6 @@
+[submodule "Sample/DynamicPatcher/Projects/Extension"]
+	path = Sample/DynamicPatcher/Projects/Extension
+	url = https://github.com/Xkein/PatcherExtension.git
+[submodule "Sample/DynamicPatcher/Projects/YRpp"]
+	path = Sample/DynamicPatcher/Projects/YRpp
+	url = https://github.com/Xkein/PatcherYRpp.git
