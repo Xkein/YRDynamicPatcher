@@ -119,6 +119,7 @@ namespace DynamicPatcher
 		public Register _EAX;
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 
+		/// <summary>Current Hook Address</summary>
 		public dword Origin
 		{
 			get => origin;
