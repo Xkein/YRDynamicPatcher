@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using DynamicPatcher;
 using PatcherYRpp;
-using PatcherSample;
+using Extension.Ext;
 
 namespace Test
 {

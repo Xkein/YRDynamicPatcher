@@ -5,13 +5,13 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using DynamicPatcher;
 using PatcherYRpp;
-using PatcherSample;
+using Extension;
 
 namespace Test
 {
     public class HTest
     {
-        [Hook(HookType.AresHook, Address = 0x6FCFA0, Size = 5)]
+        //[Hook(HookType.AresHook, Address = 0x6FCFA0, Size = 5)]
         static public unsafe UInt32 ShowFirer_work(REGISTERS* R)
         {
             ref TechnoClass rTechno = ref ((Pointer<TechnoClass>)R->ESI).Ref;
