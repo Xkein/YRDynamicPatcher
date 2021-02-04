@@ -5,7 +5,8 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using DynamicPatcher;
 using PatcherYRpp;
-using PatcherSample;
+using Extension.Ext;
+using Extension.Script;
 
 namespace Test
 {
@@ -31,9 +32,7 @@ namespace Test
             }
 			catch (Exception e)
 			{
-				Logger.Log("script exception: {0}", e.Message);
-				Logger.Log(e.StackTrace);
-				Logger.Log(" ");
+                Helpers.PrintException(e);
 				return (uint)0;
 			}
 

@@ -5,7 +5,8 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using DynamicPatcher;
 using PatcherYRpp;
-using PatcherSample;
+using Extension.Ext;
+using Extension.Script;
 using System.Threading.Tasks;
 
 namespace Test
@@ -64,7 +65,7 @@ namespace Test
                 }
             };
 
-            Draw(angle, 1);
+            Draw(angle, 3);
             angle = (angle + 4) % 360;
         }
     }
