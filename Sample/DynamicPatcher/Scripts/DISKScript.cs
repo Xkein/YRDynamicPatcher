@@ -9,8 +9,9 @@ using Extension.Ext;
 using Extension.Script;
 using System.Threading.Tasks;
 
-namespace Test
+namespace Scripts
 {
+    [Serializable]
     public class Disk : TechnoScriptable
     {
         public Disk(TechnoExt owner) : base(owner) {}
@@ -20,10 +21,6 @@ namespace Test
         static ColorStruct outerColor = new ColorStruct(19, 19, 810);
         static ColorStruct outerSpread = new ColorStruct(10, 10, 10);
 
-
-        [DllImport("Ares0A.dll")]
-        static public extern IntPtr DrawLaser(CoordStruct sourceCoords, CoordStruct targetCoords,
-            ColorStruct innerColor, ColorStruct outerColor, ColorStruct outerSpread, int duration, int thinkness);
         [DllImport("Ares0A.dll")]
         static public extern DamageAreaResult DamageArea(CoordStruct Coords, int Damage, /*Pointer<TechnoClass>*/IntPtr SourceObject, IntPtr WH,
             bool AffectsTiberium, IntPtr SourceHouse);
@@ -44,14 +41,16 @@ namespace Test
             int height = pTechno.Ref.Base.GetHeight();
 
             Action<int, int> Draw = (int start, int count) => {
-                const double radius = 1145.14;
+                const double radius = 2048.14;
                 int increasement = 360 / count;
                 CoordStruct from = curLocation;
+                    from.Z+=5000;
                 for (int i = 0; i < count; i++) {
                     double x = radius * Math.Cos((start + i * increasement) * Math.PI / 180);
                     double y = radius * Math.Sin((start + i * increasement) * Math.PI / 180);
                     CoordStruct to = curLocation + new CoordStruct((int)x, (int)y, -height);
-                    Pointer<LaserDrawClass> pLaser = DrawLaser(from, to, innerColor, outerColor, outerSpread, 8, 10);
+                    Pointer<LaserDrawClass> pLaser = YRMemory.Create<LaserDrawClass>(from, to, innerColor, outerColor, outerSpread, 8);
+                    pLaser.Ref.Thickness = 10;
                     pLaser.Ref.IsHouseColor = true;
                     
                     if(frames > 300) {
@@ -65,7 +64,7 @@ namespace Test
                 }
             };
 
-            Draw(angle, 3);
+            Draw(angle, 5);
             angle = (angle + 4) % 360;
         }
     }

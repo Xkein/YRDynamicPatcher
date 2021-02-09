@@ -7,9 +7,9 @@ using DynamicPatcher;
 using PatcherYRpp;
 using Extension.Ext;
 
-namespace Test
+namespace ExtensionHooks
 {
-    public class TechnoTypeExtTest
+    public class TechnoTypeExtHooks
     {
         [Hook(HookType.AresHook, Address = 0x711835, Size = 5)]
         static public unsafe UInt32 TechnoTypeClass_CTOR(REGISTERS* R)
@@ -28,6 +28,25 @@ namespace Test
         static public unsafe UInt32 TechnoTypeClass_LoadFromINI(REGISTERS* R)
         {
             return TechnoTypeExt.TechnoTypeClass_LoadFromINI(R);
+        }
+        
+        [Hook(HookType.AresHook, Address = 0x716DC0, Size = 5)]
+        [Hook(HookType.AresHook, Address = 0x7162F0, Size = 6)]
+        static public unsafe UInt32 TechnoTypeClass_SaveLoad_Prefix(REGISTERS* R)
+        {
+            return TechnoTypeExt.TechnoTypeClass_SaveLoad_Prefix(R);
+        }
+
+        [Hook(HookType.AresHook, Address = 0x716DAC, Size = 0xA)]
+        static public unsafe UInt32 TechnoTypeClass_Load_Suffix(REGISTERS* R)
+        {
+            return TechnoTypeExt.TechnoTypeClass_Load_Suffix(R);
+        }
+
+        [Hook(HookType.AresHook, Address = 0x717094, Size = 5)]
+        static public unsafe UInt32 TechnoTypeClass_Save_Suffix(REGISTERS* R)
+        {
+            return TechnoTypeExt.TechnoTypeClass_Save_Suffix(R);
         }
     }
 }

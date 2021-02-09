@@ -5,5 +5,7 @@
         "System.Data.dll",
         "PatcherYRpp.dll",
         "Extension.dll"
-    ] 
+    ],
+    "show_hidden" : false,
+    "load_temp_file_in_memory" : false
 }
