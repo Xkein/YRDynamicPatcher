@@ -102,9 +102,22 @@ namespace DynamicPatcher
         }
 
         /// <summary>Create a thread watching any changes of directory.</summary>
-        public void StartWatchPath(string path)
+        public Task StartWatchPath(string path)
         {
-            Task.Run(() => WatchPath(path));
+            Task firstCompileTask = Task.Run(() =>
+            {
+                FirstCompile(path);
+            });
+            Task.Run(() =>
+            {
+                Logger.Log("waiting for first compile to complete");
+                firstCompileTask.Wait();
+                Logger.Log("first compile complete!");
+
+                WatchPath(path);
+            });
+
+            return firstCompileTask;
         }
 
         /// <summary>Watch any changes of directory.</summary>
@@ -115,8 +128,6 @@ namespace DynamicPatcher
                 Logger.Log("direction not exists: " + path);
                 return;
             }
-
-            FirstCompile(path);
 
             var watcher = new FileSystemWatcher(path, "*.cs");
 
@@ -293,7 +304,7 @@ namespace DynamicPatcher
                     if (transferStations.ContainsKey(key))
                     {
                         station = transferStations[key];
-                        if (station.HookInfos.Count <= 0 || hook.Type == station.MainHookInfo.GetHookAttribute().Type)
+                        if (station.HookInfos.Count <= 0 || hook.Type == station.MaxHookInfo.GetHookAttribute().Type)
                         {
                             Logger.Log("insert hook to key '{0:X}'", key);
                             station.SetHook(info);

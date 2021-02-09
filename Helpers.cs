@@ -139,7 +139,7 @@ namespace DynamicPatcher
 
         public static void PrintException(Exception e)
         {
-            Logger.Log("exception info: ");
+            Logger.Log("{0} info: ", e.GetType().FullName);
             Logger.Log("Message: " + e.Message);
             Logger.Log("Source: " + e.Source);
             Logger.Log("TargetSite.Name: " + e.TargetSite.Name);

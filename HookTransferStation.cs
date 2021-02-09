@@ -9,7 +9,7 @@ namespace DynamicPatcher
 	class HookTransferStation : IDisposable
 	{
 		public LinkedList<HookInfo> HookInfos { get; set; } = new LinkedList<HookInfo>();
-		public HookInfo MainHookInfo { get; set; }
+		public HookInfo MaxHookInfo { get => HookInfos.Max(); }
 		protected byte[] code_over;
 
 		public HookTransferStation(HookInfo info)
@@ -21,11 +21,10 @@ namespace DynamicPatcher
 			UnHook();
 
 			HookInfos.AddLast(info);
-			MainHookInfo = HookInfos.Max();
 
 			info.TransferStation = this;
 
-			HookAttribute hook = MainHookInfo.GetHookAttribute();
+			HookAttribute hook = MaxHookInfo.GetHookAttribute();
 			if (hook.Size > 0)
 			{
 				code_over = new byte[hook.Size];
@@ -37,7 +36,7 @@ namespace DynamicPatcher
 		{
 			if (code_over != null)
 			{
-				HookAttribute hook = MainHookInfo.GetHookAttribute();
+				HookAttribute hook = MaxHookInfo.GetHookAttribute();
 				MemoryHelper.Write(hook.Address, code_over, hook.Size);
 				ASMWriter.FlushInstructionCache(hook.Address, Math.Max(hook.Size, 5));
 				code_over = null;
@@ -51,12 +50,11 @@ namespace DynamicPatcher
 			// delegate unavailable
 			info.CallableDlg = null;
 			UnHook();
-			MainHookInfo = HookInfos.Max();
 
 			if (HookInfos.Count > 0)
 			{
-				HookInfos.Remove(MainHookInfo);
-				SetHook(MainHookInfo);
+				HookInfos.Remove(MaxHookInfo);
+				SetHook(MaxHookInfo);
 			}
 		}
 
@@ -162,9 +160,9 @@ namespace DynamicPatcher
 		{
 			base.SetHook(info);
 
-			HookAttribute hook = MainHookInfo.GetHookAttribute();
+			HookAttribute hook = MaxHookInfo.GetHookAttribute();
 
-			var callable = (int)MainHookInfo.GetCallable();
+			var callable = (int)MaxHookInfo.GetCallable();
 			Logger.Log("ares hook callable: 0x{0:X}", callable);
 
 			int pMemory = (int)GetMemory(code_call.Length + hook.Size + ASM.Jmp.Length);
