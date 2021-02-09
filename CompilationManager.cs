@@ -20,6 +20,11 @@ namespace DynamicPatcher
     {
         // for undependent file
         CSharpCompilation compilation;
+        List<string> references;
+
+        bool showHidden;
+        bool loadTempFileInMemory;
+
         CSharpCompilationOptions compilationOptions;
 
         Solution solution;
@@ -30,6 +35,8 @@ namespace DynamicPatcher
         public CompilationManager(string workDir)
         {
             workDirectory = workDir;
+
+            LoadConfig(workDir);
 
             compilationOptions = new CSharpCompilationOptions(
                             OutputKind.DynamicallyLinkedLibrary,
@@ -68,7 +75,20 @@ namespace DynamicPatcher
                 Logger.Log("solution not found");
             }
 
-            LoadConfig(workDir);
+            // load references
+            List<MetadataReference> metadataReferences = new List<MetadataReference>();
+
+            foreach (var reference in references)
+            {
+                string path = Helpers.GetAssemblyPath(reference);
+                MetadataReference metadata = MetadataReference.CreateFromFile(path);
+
+                metadataReferences.Add(metadata);
+            }
+
+            compilation = CSharpCompilation.Create(null, references: metadataReferences, options: compilationOptions);
+
+            ShowCompilerConfig();
         }
 
         private void LoadConfig(string workDir)
@@ -78,24 +98,18 @@ namespace DynamicPatcher
             JObject json = JObject.Load(reader);
             var configs = json;
 
-            // load references
-            List<MetadataReference> metadataReferences = new List<MetadataReference>();
-
-            metadataReferences.Add(MetadataReference.CreateFromFile(Helpers.GetAssemblyPath("DynamicPatcher.dll")));
-            metadataReferences.Add(MetadataReference.CreateFromFile(Helpers.GetAssemblyPath("mscorlib.dll")));
+            this.references = new List<string>();
+            this.references.Add("DynamicPatcher.dll");
+            this.references.Add("mscorlib.dll");
 
             var references = configs["references"].ToArray();
             foreach (var token in references)
             {
-                string path = Helpers.GetAssemblyPath(token.ToString());
-                MetadataReference metadata = MetadataReference.CreateFromFile(path);
-
-                metadataReferences.Add(metadata);
+                this.references.Add(token.ToString());
             }
 
-            compilation = CSharpCompilation.Create(null, references: metadataReferences, options: compilationOptions);
-
-            ShowCompilerConfig();
+            showHidden = configs["show_hidden"].ToObject<bool>();
+            loadTempFileInMemory = configs["load_temp_file_in_memory"].ToObject<bool>();
         }
 
         private void LoadSolution(string path)
@@ -127,6 +141,8 @@ namespace DynamicPatcher
                     }
                 }
             }
+
+            Logger.Log("");
         }
 
         private void LoadProject(string name, string path, ProjectId projectId)
@@ -197,6 +213,9 @@ namespace DynamicPatcher
             }
             Logger.Log("");
 
+            Logger.Log("Diagnostic.ShowHidden: " + showHidden);
+            Logger.Log("LoadTempFileInMemory: " + loadTempFileInMemory);
+
             CSharpCompilationOptions compilationOptions = compilation.Options;
             Logger.Log("CompilerOptions: ");
             Logger.Log("AllowUnsafe: " + compilationOptions.AllowUnsafe);
@@ -211,6 +230,11 @@ namespace DynamicPatcher
 
         public Project GetProjectFromFile(string path)
         {
+            if (solution == null)
+            {
+                return null;
+            }
+
             foreach (Project project in solution.Projects)
             {
                 foreach (Document document in project.Documents)
@@ -228,7 +252,7 @@ namespace DynamicPatcher
         public Assembly Compile(string path)
         {
             Project project = GetProjectFromFile(path);
-            if(project != null)
+            if (project != null)
             {
                 return CompileProject(project);
             }
@@ -243,7 +267,22 @@ namespace DynamicPatcher
             return outputPath;
         }
 
-        public Assembly CompileFile(string path)
+        private void ShowDiagnostics(IEnumerable<Diagnostic> diagnostics)
+        {
+            Logger.Log("Diagnostics: ");
+            foreach (Diagnostic diagnostic in diagnostics)
+            {
+                if (showHidden == false && diagnostic.Severity == DiagnosticSeverity.Hidden)
+                {
+                    continue;
+                }
+                string message = "" + diagnostic.ToString();
+                Logger.Log(message);
+            }
+            Logger.Log("");
+        }
+
+        private Assembly CompileFile(string path)
         {
             Logger.Log("compiling: " + path);
 
@@ -256,74 +295,119 @@ namespace DynamicPatcher
                 Compilation compiler = compilation.AddSyntaxTrees(tree).WithAssemblyName(fileName);
 
                 string outputPath = GetOutputPath(Path.ChangeExtension(path, "tmp"));
-                var result = compiler.Emit(outputPath);
 
-                Logger.Log("compiler output: ");
-                foreach (Diagnostic diagnostic in result.Diagnostics)
+                bool codeChanged = false;
+                if (File.Exists(outputPath))
                 {
-                    string message = path + diagnostic.ToString();
-                    Logger.Log(message);
+                    FileInfo codeInfo = new FileInfo(path);
+                    FileInfo outputInfo = new FileInfo(outputPath);
+
+                    if (codeInfo.LastWriteTime > outputInfo.LastWriteTime)
+                    {
+                        codeChanged = true;
+                    }
                 }
-                Logger.Log("");
-
-                if (result.Success)
+                else
                 {
-                    Logger.Log("compile file succeed!");
-                    try
-                    {
-                        Logger.Log("loading complied assembly");
-                        using MemoryStream memory = new MemoryStream();
-                        using (FileStream tmpFile = File.OpenRead(outputPath))
-                        {
-                            tmpFile.CopyTo(memory);
-                        }
+                    codeChanged = true;
+                }
 
-                        Assembly assembly = Assembly.Load(memory.ToArray());
-                        return assembly;
-                    }
-                    finally
+                if (codeChanged)
+                {
+                    string pdbPath = Path.ChangeExtension(outputPath, "pdb");
+                    var result = compiler.Emit(outputPath, pdbPath);
+
+                    ShowDiagnostics(result.Diagnostics);
+
+                    if (result.Success == false)
                     {
-                        Logger.Log("delete temp file: " + outputPath);
-                        File.Delete(outputPath);
+                        Logger.Log("compiler error!");
                         Logger.Log("");
+                        return null;
                     }
+
+                    Logger.Log("compile file succeed!");
+                    Logger.Log("loading complied assembly");
+                    Logger.Log("");
+                }
+                else
+                {
+                    Logger.Log("code is older than assembly, use old assembly.");
+                    Logger.Log("");
+                }
+
+                if (loadTempFileInMemory)
+                {
+                    using MemoryStream memory = new MemoryStream();
+                    using (FileStream tmpFile = File.OpenRead(outputPath))
+                    {
+                        tmpFile.CopyTo(memory);
+                    }
+
+                    Assembly assembly = Assembly.Load(memory.ToArray());
+                    return assembly;
+                }
+                else
+                {
+                    Assembly assembly = Assembly.LoadFrom(outputPath);
+                    return assembly;
                 }
             }
-
-            Logger.Log("compiler error!");
-            Logger.Log("");
-            return null;
         }
 
-        public Assembly CompileProject(Project project)
+        private Assembly CompileProject(Project project)
         {
             Logger.Log("compiling project: " + project.FilePath);
 
             Compilation projectCompilation = project.GetCompilationAsync().Result;
 
             string outputPath = GetOutputPath(Path.ChangeExtension(project.FilePath, "dll"));
-            var result = projectCompilation.Emit(outputPath);
 
-            Logger.Log("compiler output: ");
-            foreach (Diagnostic diagnostic in result.Diagnostics)
+            bool codeChanged = false;
+            if (File.Exists(outputPath))
             {
-                string message = "" + diagnostic.ToString();
-                Logger.Log(message);
+                FileInfo outputInfo = new FileInfo(outputPath);
+                foreach (Document document in project.Documents)
+                {
+                    FileInfo codeInfo = new FileInfo(document.FilePath);
+                    if (codeInfo.LastWriteTime > outputInfo.LastWriteTime)
+                    {
+                        codeChanged = true;
+                    }
+                }
             }
-            Logger.Log("");
-
-            if (result.Success)
+            else
             {
+                codeChanged = true;
+            }
+
+            if (codeChanged)
+            {
+                string pdbPath = Path.ChangeExtension(outputPath, "pdb");
+                var result = projectCompilation.Emit(outputPath, pdbPath);
+
+                ShowDiagnostics(result.Diagnostics);
+
+                if (result.Success == false)
+                {
+                    Logger.Log("compiler error!");
+                    Logger.Log("");
+                    return null;
+
+                }
+
                 Logger.Log("compile project '{0}' succeed!", project.Name);
                 Logger.Log("loading complied assembly");
                 Logger.Log("");
-                Assembly assembly = Assembly.LoadFrom(outputPath);
-                return assembly;
+            }
+            else
+            {
+                Logger.Log("code is older than assembly, use old assembly.");
+                Logger.Log("");
             }
 
-            Logger.Log("compiler error!");
-            Logger.Log("");
-            return null;
+            Assembly assembly = Assembly.LoadFrom(outputPath);
+            return assembly;
         }
     }
 }

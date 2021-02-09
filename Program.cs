@@ -39,7 +39,9 @@ namespace DynamicPatcher
 
             Patcher = new Patcher();
             Patcher.Init(workDir);
-            Patcher.StartWatchPath(workDir);
+            Task task = Patcher.StartWatchPath(workDir);
+
+            task.Wait(TimeSpan.FromSeconds(1.14514));
         }
 
         private static void CurrentDomain_AssemblyLoad(object sender, AssemblyLoadEventArgs args)
@@ -63,7 +65,7 @@ namespace DynamicPatcher
                 return false;
             };
 
-            string fileName = args.Name.Split(',')[0] + ".dll";
+            string fileName = args.Name.Split(',')[0] + ".dll";// Console.WriteLine("try loading assembly: " + args.Name);
 
             if (TryLoad(Path.Combine(librariesDirectory, fileName)))
             {

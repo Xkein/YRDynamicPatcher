@@ -138,7 +138,7 @@ namespace DynamicPatcher
         {
 			if(CallableDlg != null)
             {
-				return CallableDlg;
+				//return CallableDlg;
 			}
 
 			Delegate dlg = null;
