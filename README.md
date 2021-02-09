@@ -36,9 +36,11 @@ Usage
 --------
 Put `PatcherLoader.dll` and `DynamicPatcher.dll` on your YR directory and launch Syringe targeting your YR executable (usually `gamemd.exe`).
 
-Create the directory `DynamicPatcher`, and put `config.json` on it.
+Create the directory `DynamicPatcher` and put `dynamicpatcher.config.json` & `compiler.config.json` on it.
 
-`config.json` could be gain from released files.
+Create the directory `Libraries` and put necessary assembly on it.
+
+Everythings could be gained from released files.
 
 The patcher will search exist files at first or detected every file changes later. Next compile the file and syringe.
 
@@ -84,28 +86,34 @@ namespace PatcherSample
 
 Configuration
 --------
-the file `DynamicPatcher\config.json` explanation:
+the file `DynamicPatcher\dynamicpatcher.config.json` explanation:
 
 `try_catch_callable` : try-catch invoke a hook function.
 
+`force_gc_collect` : forces garbage collection per 10s
+
+
+the file `DynamicPatcher\compiler.config.json` explanation:
+
 `references` : the assemblies it referenced.
 
-`compiler_options` : the command line to compiler
+`show_hidden` : show hidden message of compiler
 
-`force_gc_collect` : forces garbage collection per 10s
+`load_temp_file_in_memory` : load temp file into memory. set false if want to Save & Load
 
 
 YRPP
 --------
 The c# style YRPP is WIP.
 
-PatcherSample
+DynamicPatcher based Extensions
 --------
-PatcherSample is a sample extension base on YRDynamicPatcher.
+The framework is designed in Sample.
 It has some simple feature below:
 - TechnoScript
   - OnUpdate
 - Update script when recompiling (unsafe)
+- Save & Load
 
 Legal
 -----
