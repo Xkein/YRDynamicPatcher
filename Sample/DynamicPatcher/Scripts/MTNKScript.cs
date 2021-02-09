@@ -9,8 +9,9 @@ using Extension.Ext;
 using Extension.Script;
 using System.Threading.Tasks;
 
-namespace Test
+namespace Scripts
 {
+    [Serializable]
     public class MTNK : TechnoScriptable
     {
         public MTNK(TechnoExt owner) : base(owner) {}
@@ -32,11 +33,6 @@ namespace Test
         static ColorStruct outerColor = new ColorStruct(88, 0, 88);
         static ColorStruct outerSpread = new ColorStruct(10, 10, 10);
 
-
-        [DllImport("Ares0A.dll")]
-        static public extern IntPtr DrawLaser(CoordStruct sourceCoords, CoordStruct targetCoords,
-            ColorStruct innerColor, ColorStruct outerColor, ColorStruct outerSpread, int duration, int thinkness);
-
         CoordStruct lastLocation;
 
         public unsafe void OnUpdate()
@@ -48,9 +44,9 @@ namespace Test
             nextLocation.Z += 50;
             if (lastLocation.DistanceFrom(nextLocation) > 100)
             {
-                //var pLaser = YRMemory.Create<LaserDrawClass>(lastLocation, nextLocation, innerColor, outerColor, outerSpread, duration);
-                LaserDrawClass* pLaser = (LaserDrawClass*)DrawLaser(lastLocation, nextLocation, innerColor, outerColor, outerSpread, 200, 10);
-                pLaser->IsHouseColor = true;
+                Pointer<LaserDrawClass> pLaser = YRMemory.Create<LaserDrawClass>(lastLocation, nextLocation, innerColor, outerColor, outerSpread, 30);
+                pLaser.Ref.Thickness = 10;
+                pLaser.Ref.IsHouseColor = true;
                 //Logger.Log("laser [({0}, {1}, {2}) -> ({3}, {4}, {5})]", lastLocation.X, lastLocation.Y, lastLocation.Z, nextLocation.X, nextLocation.Y, nextLocation.Z);
 
                 lastLocation = nextLocation;

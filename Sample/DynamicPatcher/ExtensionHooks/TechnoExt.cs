@@ -8,9 +8,9 @@ using PatcherYRpp;
 using Extension.Ext;
 using Extension.Script;
 
-namespace Test
+namespace ExtensionHooks
 {
-    public class TechnoExtTest
+    public class TechnoExtHooks
     {
         [Hook(HookType.AresHook, Address = 0x6F3260, Size = 5)]
         static public unsafe UInt32 TechnoClass_CTOR(REGISTERS* R)
@@ -36,6 +36,25 @@ namespace Test
 				return (uint)0;
 			}
 
+        }
+        
+        [Hook(HookType.AresHook, Address = 0x70C250, Size = 8)]
+        [Hook(HookType.AresHook, Address = 0x70BF50, Size = 5)]
+        static public unsafe UInt32 TechnoClass_SaveLoad_Prefix(REGISTERS* R)
+        {
+            return TechnoExt.TechnoClass_SaveLoad_Prefix(R);
+        }
+
+        [Hook(HookType.AresHook, Address = 0x70C249, Size = 5)]
+        static public unsafe UInt32 TechnoClass_Load_Suffix(REGISTERS* R)
+        {
+            return TechnoExt.TechnoClass_Load_Suffix(R);
+        }
+
+        [Hook(HookType.AresHook, Address = 0x70C264, Size = 5)]
+        static public unsafe UInt32 TechnoClass_Save_Suffix(REGISTERS* R)
+        {
+            return TechnoExt.TechnoClass_Save_Suffix(R);
         }
     }
 }
