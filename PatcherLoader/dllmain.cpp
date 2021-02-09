@@ -185,19 +185,21 @@ struct alignas(16) hookdecl {
     const char* hookName;
 };
 
+// do action after window created
 #pragma section(".syhks00", read, write)
-__declspec(allocate(".syhks00")) hookdecl _hk__PatcherLoader_Action = { 0x7CD810, 0x9, "PatcherLoader_Action" };
+__declspec(allocate(".syhks00")) hookdecl _hk__PatcherLoader_Action = { 0x777DC2, 0x6, "PatcherLoader_Action" };
 
 
 typedef DWORD REGISTERS;
 extern "C" __declspec(dllexport) DWORD __cdecl PatcherLoader_Action(REGISTERS * R)
 {
-    std::thread([]()
+    /*std::thread([]()
         {
             std::this_thread::sleep_for(std::chrono::seconds(2));
             Action();
         }
-    ).detach();
+    ).detach();*/
+    Action();
 
     return 0;
 }
