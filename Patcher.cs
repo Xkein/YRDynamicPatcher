@@ -254,9 +254,18 @@ namespace DynamicPatcher
             {
                 FileAssembly.Add(path, assembly);
             }
-            ApplyAssembly(assembly);
 
-            AssemblyRefresh?.Invoke(this, new AssemblyRefreshEventArgs(Path.GetFileNameWithoutExtension(path), assembly));
+            try
+            {
+                ApplyAssembly(assembly);
+
+                AssemblyRefresh?.Invoke(this, new AssemblyRefreshEventArgs(Path.GetFileNameWithoutExtension(path), assembly));
+            }
+            catch (Exception e)
+            {
+                Logger.Log("apply error!");
+                Helpers.PrintException(e);
+            }
         }
 
         void ApplyAssembly(Assembly assembly)

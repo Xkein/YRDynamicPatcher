@@ -14,7 +14,7 @@ namespace DynamicPatcher
         public delegate void WriteLineDelegate(string str);
         /// <summary>Invoked when log the message.</summary>
         static public WriteLineDelegate WriteLine { get; set; }
-        /// <summary>Write message to logger.</summary>
+        /// <summary>Write format string to logger.</summary>
         static public void Log(string format, params object[] args)
         {
             string str = string.Format(format, args);
@@ -22,7 +22,13 @@ namespace DynamicPatcher
             WriteLine.Invoke(str);
         }
 
-        /// <summary>Write message to logger.</summary>
+        /// <summary>Write string to logger.</summary>
+        static public void Log(string str)
+        {
+            WriteLine.Invoke(str);
+        }
+
+        /// <summary>Write object to logger.</summary>
         static public void Log(object obj)
         {
             WriteLine.Invoke(obj.ToString());
