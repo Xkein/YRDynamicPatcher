@@ -46,8 +46,19 @@ namespace DynamicPatcher
 
         internal Patcher()
         {
-            Logger.WriteLine += (string str) => Console.WriteLine(str);
+            Logger.WriteLine += ConsoleWriteLine;
         }
+
+        [DllImport("kernel32.dll")]
+        private static extern bool AllocConsole();
+
+        [DllImport("kernel32", SetLastError = true)]
+        private static extern bool AttachConsole(int dwProcessId);
+
+        [DllImport("kernel32.dll")]
+        private static extern bool FreeConsole();
+
+        void ConsoleWriteLine(string str) => Console.WriteLine(str);
 
         internal void Init(string workDir)
         {
@@ -63,6 +74,12 @@ namespace DynamicPatcher
                 using StreamReader file = File.OpenText(Path.Combine(workDir, "dynamicpatcher.config.json"));
                 using JsonTextReader reader = new JsonTextReader(file);
                 var json = JObject.Load(reader);
+
+                if (json["hide_console"].ToObject<bool>())
+                {
+                    FreeConsole();
+                    Logger.WriteLine -= ConsoleWriteLine;
+                }
 
                 if (json["show_attach_window"].ToObject<bool>())
                 {
