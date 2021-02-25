@@ -63,11 +63,33 @@ namespace DynamicPatcher
 
         internal void Init(string workDir)
         {
-            var logFileStream = new FileStream(Path.Combine(workDir, "patcher.log"), FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
+            FileStream logFileStream = new FileStream(Path.Combine(workDir, "patcher.log"), FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
             var logFileWriter = new StreamWriter(logFileStream);
+
             Logger.WriteLine += (string str) =>
             {
                 logFileWriter.WriteLine(str); logFileWriter.Flush();
+            };
+
+            Action CopyErrorLog = () =>
+            {
+                string dir = Path.Combine(workDir, "ErrorLogs");
+                Directory.CreateDirectory(dir);
+                DateTime date = DateTime.Now;
+
+                File.Copy(logFileStream.Name,
+                    Path.Combine(dir, string.Format("ErrorLog_{0}_{1}_{2}_{3}_{4}.log",
+                    date.Year, date.Month, date.Day, date.Hour, date.Minute)), true);
+                System.Windows.Forms.MessageBox.Show("ErrorLog Created", "Dynamic Patcher");
+            };
+
+            Process process = Process.GetCurrentProcess();
+            process.EnableRaisingEvents = true;
+            process.Exited += (object sender, EventArgs e) => {
+                if (Helpers.HasException)
+                {
+                    CopyErrorLog();
+                }
             };
 
             try
@@ -337,7 +359,7 @@ namespace DynamicPatcher
                             Logger.Log("insert hook to key '{0:X}'", key);
                             station.SetHook(info);
                         }
-                        else if(station.HookInfos.Count <= 0)
+                        else if (station.HookInfos.Count <= 0)
                         {
                             Logger.Log("remove key '{0:X}' because of hook type mismatch. ", key);
                             transferStations.Remove(key);
