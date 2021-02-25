@@ -24,6 +24,7 @@ namespace DynamicPatcher
 
         bool showHidden;
         bool loadTempFileInMemory;
+        bool emitPDB;
 
         CSharpCompilationOptions compilationOptions;
 
@@ -110,6 +111,7 @@ namespace DynamicPatcher
 
             showHidden = configs["show_hidden"].ToObject<bool>();
             loadTempFileInMemory = configs["load_temp_file_in_memory"].ToObject<bool>();
+            emitPDB = configs["emit_pdb"].ToObject<bool>();
         }
 
         private void LoadSolution(string path)
@@ -215,6 +217,8 @@ namespace DynamicPatcher
 
             Logger.Log("Diagnostic.ShowHidden: " + showHidden);
             Logger.Log("LoadTempFileInMemory: " + loadTempFileInMemory);
+            Logger.Log("EmitPDB: " + emitPDB);
+            Logger.Log("");
 
             CSharpCompilationOptions compilationOptions = compilation.Options;
             Logger.Log("CompilerOptions: ");
@@ -315,7 +319,7 @@ namespace DynamicPatcher
                 if (codeChanged)
                 {
                     string pdbPath = Path.ChangeExtension(outputPath, "pdb");
-                    var result = compiler.Emit(outputPath, pdbPath);
+                    var result = compiler.Emit(outputPath, pdbPath: emitPDB ? pdbPath : null);
 
                     ShowDiagnostics(result.Diagnostics);
 
@@ -384,7 +388,7 @@ namespace DynamicPatcher
             if (codeChanged)
             {
                 string pdbPath = Path.ChangeExtension(outputPath, "pdb");
-                var result = projectCompilation.Emit(outputPath, pdbPath);
+                var result = projectCompilation.Emit(outputPath, pdbPath: emitPDB ? pdbPath : null);
 
                 ShowDiagnostics(result.Diagnostics);
 
