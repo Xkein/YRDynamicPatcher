@@ -52,7 +52,6 @@ namespace DynamicPatcher
 	class HookInfo : IComparable
 	{
 		public static bool TryCatchCallable { get; set; } = false;
-		static readonly int InvalidAddress = 114514;
 
 		public MemberInfo Member { get; private set; }
 		public HookAttribute HookAttribute { get; private set; }

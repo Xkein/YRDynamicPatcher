@@ -91,6 +91,7 @@ namespace DynamicPatcher
                 {
                     HookInfo.TryCatchCallable = true;
                 }
+                Logger.Log("try-catch callable: " + HookInfo.TryCatchCallable);
 
                 if (json["force_gc_collect"].ToObject<bool>())
                 {
