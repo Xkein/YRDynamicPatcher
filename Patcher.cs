@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -330,16 +331,20 @@ namespace DynamicPatcher
                     if (transferStations.ContainsKey(key))
                     {
                         station = transferStations[key];
-                        if (station.HookInfos.Count <= 0 || hook.Type == station.MaxHookInfo.GetHookAttribute().Type)
+                        if (station.Match(hook.Type))
                         {
                             Logger.Log("insert hook to key '{0:X}'", key);
                             station.SetHook(info);
                         }
-                        else
+                        else if(station.HookInfos.Count <= 0)
                         {
                             Logger.Log("remove key '{0:X}' because of hook type mismatch. ", key);
                             transferStations.Remove(key);
                             station = null;
+                        }
+                        else
+                        {
+                            throw new InvalidOperationException("hook type mismatch.");
                         }
                     }
 
@@ -355,6 +360,9 @@ namespace DynamicPatcher
                             case HookType.SimpleJumpToRet:
                             case HookType.DirectJumpToHook:
                                 station = new JumpHookTransferStation(info);
+                                break;
+                            case HookType.WriteBytesHook:
+                                station = new WriteBytesHookTransferStation(info);
                                 break;
                             default:
                                 Logger.Log("found unkwnow hook: " + member.Name);
@@ -392,9 +400,16 @@ namespace DynamicPatcher
 
                             if (transferStations.ContainsKey(key))
                             {
-                                Logger.Log("remove hook: " + info.Method.Name);
-                                info = transferStations[key].HookInfos.First(cur => cur.Member == member && cur.TransferStation == transferStations[key]);
-                                transferStations[key].UnHook(info);
+                                Logger.Log("remove hook: " + info.Member.Name);
+                                if (transferStations[key].HookInfos.Count > 0)
+                                {
+                                    info = transferStations[key].HookInfos.First(cur => cur.Member == member && cur.TransferStation == transferStations[key]);
+                                    transferStations[key].UnHook(info);
+                                }
+                                else
+                                {
+                                    Logger.Log("remove error! TransferStation has no hook!");
+                                }
                             }
                         }
                     }

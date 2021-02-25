@@ -6,10 +6,11 @@ using System.Threading.Tasks;
 
 namespace DynamicPatcher
 {
-	class HookTransferStation : IDisposable
+	abstract class HookTransferStation : IDisposable
 	{
 		public LinkedList<HookInfo> HookInfos { get; set; } = new LinkedList<HookInfo>();
 		public HookInfo MaxHookInfo { get => HookInfos.Max(); }
+		public abstract bool Match(HookType hookType);
 		protected byte[] code_over;
 
 		public HookTransferStation(HookInfo info)
@@ -46,10 +47,10 @@ namespace DynamicPatcher
 		// unhook a hook
 		virtual public void UnHook(HookInfo info)
 		{
+			UnHook();
 			HookInfos.Remove(info);
 			// delegate unavailable
 			info.CallableDlg = null;
-			UnHook();
 
 			if (HookInfos.Count > 0)
 			{
@@ -88,9 +89,14 @@ namespace DynamicPatcher
 		{
 		}
 
-		public override void SetHook(HookInfo info)
+        public override bool Match(HookType hookType)
+        {
+			return hookType == HookType.SimpleJumpToRet || hookType == HookType.DirectJumpToHook;
+        }
+
+        public override void SetHook(HookInfo info)
 		{
-			if (HookInfos.Count > 1)
+			if (HookInfos.Count > 0)
 			{
 				throw new InvalidOperationException("JumpHook can not mix with other hook");
 			}
@@ -101,7 +107,7 @@ namespace DynamicPatcher
 			switch (hook.Type)
 			{
 				case HookType.SimpleJumpToRet:
-					int address = info.GetReturnValue();
+					int address = (int)info.GetReturnValue();
 					Logger.Log("jump to address: 0x{0:X}", address);
 					ASMWriter.WriteJump(new JumpStruct(hook.Address, address));
 					break;
@@ -111,7 +117,7 @@ namespace DynamicPatcher
 					ASMWriter.WriteJump(new JumpStruct(hook.Address, callable));
 					break;
 				default:
-					Logger.Log("found unkwnow jump hook: " + info.Method.Name);
+					Logger.Log("found unkwnow jump hook: " + info.Member.Name);
 					break;
 			}
 		}
@@ -139,6 +145,11 @@ namespace DynamicPatcher
 
 		public AresHookTransferStation(HookInfo info) : base(info)
 		{
+		}
+
+		public override bool Match(HookType hookType)
+		{
+			return hookType == HookType.AresHook;
 		}
 
 		IntPtr GetMemory(int size)
@@ -207,6 +218,33 @@ namespace DynamicPatcher
 				memoryHandle.Dispose();
 			}
 			base.Dispose(disposing);
+		}
+	}
+	class WriteBytesHookTransferStation : HookTransferStation
+	{
+		public WriteBytesHookTransferStation(HookInfo info) : base(info)
+		{
+		}
+
+		public override bool Match(HookType hookType)
+		{
+			return hookType == HookType.WriteBytesHook;
+		}
+
+		public override void SetHook(HookInfo info)
+		{
+			if (HookInfos.Count > 0)
+			{
+				throw new InvalidOperationException("WriteBytesHook can not mix with other hook");
+			}
+
+			base.SetHook(info);
+
+			HookAttribute hook = info.GetHookAttribute();
+			var bytes = info.GetReturnValue() as byte[];
+
+			Logger.Log("write bytes: [{0}]", string.Join(", ", bytes));
+			MemoryHelper.Write(hook.Address, bytes, bytes.Length);
 		}
 	}
 }

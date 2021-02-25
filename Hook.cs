@@ -21,7 +21,10 @@ namespace DynamicPatcher
 		SimpleJumpToRet,
 		/// <summary>Specifies that the hook is just a jump to hook.</summary>
 		/// <remarks>this type hook can not hook a hooked address.</remarks>
-		DirectJumpToHook
+		DirectJumpToHook,
+		/// <summary>Specifies that the hook is to write bytes to address.</summary>
+		/// <remarks>this type hook can not hook a hooked address.</remarks>
+		WriteBytesHook
 	};
 
 	/// <summary>Controls the hook behavior and data.</summary>
@@ -76,36 +79,29 @@ namespace DynamicPatcher
 			return member.GetCustomAttributes(typeof(HookAttribute), false) as HookAttribute[];
         }
 
-		delegate int SimpleJumpFunction();
-		delegate void HookFunction(params object[] paramters);
-
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		unsafe delegate dword AresHookFunction(REGISTERS* R);
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		delegate dword AresHookDelegate(IntPtr R);
 
-		public int GetReturnValue()
+		public object GetReturnValue()
 		{
-			if (GetHookAttribute().Type == HookType.SimpleJumpToRet)
+			switch (Member.MemberType)
 			{
-				Type jumpType = typeof(SimpleJumpFunction);
-				switch (Member.MemberType)
-				{
-					case MemberTypes.Method:
-					case MemberTypes.Event:
-					case MemberTypes.Field when jumpType.IsAssignableFrom(Field.FieldType):
-					case MemberTypes.Property when jumpType.IsAssignableFrom(Property.PropertyType):
-						SimpleJumpFunction function = GetDelegate(jumpType) as SimpleJumpFunction;
-						return function.Invoke();
+				case MemberTypes.Method:
+				case MemberTypes.Event:
+				case MemberTypes.Field when typeof(Delegate).IsAssignableFrom(Field.FieldType):
+				case MemberTypes.Property when typeof(Delegate).IsAssignableFrom(Property.PropertyType):
+					var function = GetDelegate(GetHookFuntionType());
+					return function.DynamicInvoke();
 
-					case MemberTypes.Field:
-						return (int)Field.GetValue(null);
-					case MemberTypes.Property:
-						return (int)Property.GetValue(null);
-				}
-
+				case MemberTypes.Field:
+					return Field.GetValue(null);
+				case MemberTypes.Property:
+					return Property.GetValue(null);
 			}
-			return InvalidAddress;
+
+			return null;
 		}
 		public Delegate GetDelegate(Type dlgType)
 		{
@@ -113,8 +109,8 @@ namespace DynamicPatcher
             {
                 MemberTypes.Method => Method.CreateDelegate(dlgType),
                 MemberTypes.Event => Event.RaiseMethod.CreateDelegate(dlgType),
-                MemberTypes.Field when dlgType.IsAssignableFrom(Field.FieldType) => Field.GetValue(null) as Delegate,
-                MemberTypes.Property when dlgType.IsAssignableFrom(Property.PropertyType) => Property.GetValue(null) as Delegate,
+                MemberTypes.Field when typeof(Delegate).IsAssignableFrom(Field.FieldType) => Field.GetValue(null) as Delegate,
+                MemberTypes.Property when typeof(Delegate).IsAssignableFrom(Property.PropertyType) => Property.GetValue(null) as Delegate,
                 _ => null,
             };
         }
@@ -126,9 +122,10 @@ namespace DynamicPatcher
             return hook.Type switch
             {
                 HookType.AresHook => typeof(AresHookFunction),
-                HookType.SimpleJumpToRet => typeof(SimpleJumpFunction),
-                HookType.DirectJumpToHook => typeof(HookFunction),
-                _ => null,
+                HookType.SimpleJumpToRet => typeof(Func<int>),
+                HookType.DirectJumpToHook => typeof(Action),
+				HookType.WriteBytesHook => typeof(Func<byte[]>),
+				_ => null,
             };
         }
 
