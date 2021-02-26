@@ -35,7 +35,7 @@ namespace Scripts
 
         CoordStruct lastLocation;
 
-        public unsafe void OnUpdate()
+        public override void OnUpdate()
         {
             Pointer<TechnoClass> pTechno = Owner.OwnerObject;
             TechnoTypeExt extType = Owner.Type;
@@ -50,6 +50,24 @@ namespace Scripts
                 //Logger.Log("laser [({0}, {1}, {2}) -> ({3}, {4}, {5})]", lastLocation.X, lastLocation.Y, lastLocation.Z, nextLocation.X, nextLocation.Y, nextLocation.Z);
 
                 lastLocation = nextLocation;
+            }
+        }
+        
+        public override void OnFire(Pointer<AbstractClass> pTarget, int weaponIndex) 
+        {
+            TechnoTypeExt extType = Owner.Type;
+            Pointer<SuperWeaponTypeClass> pSWType = extType.FireSuperWeapon;
+
+            if (pSWType.IsNull == false) {
+                Pointer<TechnoClass> pTechno = Owner.OwnerObject;
+                Pointer<HouseClass> pOwner = pTechno.Ref.Owner;
+                Pointer<SuperClass> pSuper = pOwner.Ref.FindSuperWeapon(pSWType);
+
+                CellStruct targetCell = MapClass.Coord2Cell(pTarget.Ref.GetCoords());
+                //Logger.Log("FireSuperWeapon({2}):0x({3:X}) -> ({0}, {1})", targetCell.X, targetCell.Y, pSWType.Ref.Base.GetID(), (int)pSuper);
+                pSuper.Ref.IsCharged = 1;
+                pSuper.Ref.Launch(targetCell, true);
+                pSuper.Ref.IsCharged = 0;
             }
         }
     }

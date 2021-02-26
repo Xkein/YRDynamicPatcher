@@ -19,7 +19,7 @@ namespace Test
             ref HouseClass rHouse = ref rTechno.Owner.Ref;
             unsafe
             {
-                string ID = rType.Base.GetUIName();
+                string ID = rType.Base.Base.GetUIName();
                 string HouseID = rHouse.Type.Ref.Base.GetUIName();
                 Logger.Log("{0}({1}) fired", ID, HouseID);
             };
@@ -84,5 +84,17 @@ namespace Test
 
             return 0x550F9D;
         }
+        
+        static public object writebytesfunc() => new byte[]{0x11,0x45,0x14,0x19,0x19,0x81};
+		public delegate object writebytesdlg();
+
+        [Hook(HookType.WriteBytesHook, Address = 0x7E03E0, Size = 8)]
+        static public writebytesdlg writebytestest = writebytesfunc;
+        
+        static public object errorlogtestfunc() => throw new InvalidOperationException("you can't call this function.");
+		public delegate object errorlogtestdlg();
+
+        [Hook(HookType.WriteBytesHook, Address = 0x7E03F0, Size = 5)]
+        static public errorlogtestdlg errorlogtest = errorlogtestfunc;
     }
 }

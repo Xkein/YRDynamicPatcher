@@ -19,7 +19,7 @@ namespace Test
             ref HouseClass rHouse = ref rTechno.Owner.Ref;
             TechnoExt ext = TechnoExt.ExtMap.Find((Pointer<TechnoClass>)R->ESI);
 
-            string ID = rType.Base.GetUIName();
+            string ID = rType.Base.Base.GetUIName();
             string HouseID = rHouse.Type.Ref.Base.GetUIName();
             Logger.Log("{0}({1}) {2} Berzerk {3}", ID, HouseID, ext.MyExtensionTest, rTechno.Berzerk);
 
