@@ -18,6 +18,7 @@ We can use it to do something below:
   - Ares style hook
   - Direct jump to hook function
   - Direct jump to address
+  - Write bytes to address
 - Recoverable Hook
 - Recoverable Hook from Exception
 - Dynamic Compile & Syringe Technique
@@ -38,11 +39,13 @@ Put `PatcherLoader.dll` and `DynamicPatcher.dll` on your YR directory and launch
 
 Create the directory `DynamicPatcher` and put `dynamicpatcher.config.json` & `compiler.config.json` on it.
 
-Create the directory `Libraries` and put necessary assembly on it.
+Create the directory `DynamicPatcher\Libraries` and put necessary assembly on it.
 
-Everythings could be gained from released files.
+Everythings could be gained from released files.(recommend)
 
 The patcher will search exist files at first or detected every file changes later. Next compile the file and syringe.
+
+**Patcher will compare the code files and compiled assemblies to skip unnecessary compile.** If you meet some stranger problem, try deleting the directory `DynamicPatcher\Build`.
 
 Hook
 --------
@@ -90,7 +93,9 @@ the file `DynamicPatcher\dynamicpatcher.config.json` explanation:
 
 `try_catch_callable` : try-catch invoke a hook function.
 
-`force_gc_collect` : forces garbage collection per 10s
+`force_gc_collect` : forces garbage collection per 10s.
+
+`hide_console` : hide the console during start-up.
 
 
 the file `DynamicPatcher\compiler.config.json` explanation:
@@ -99,19 +104,24 @@ the file `DynamicPatcher\compiler.config.json` explanation:
 
 `show_hidden` : show hidden message of compiler
 
-`load_temp_file_in_memory` : load temp file into memory. set false if want to Save & Load
+`load_temp_file_in_memory` : load temp file into memory. set false if want to Save & Load. set true if want to modify code dynamically.
 
+`emit_pdb` : emit pdb message
 
-YRPP
+[YRPP](https://github.com/Xkein/PatcherYRpp)
 --------
 The c# style YRPP is WIP.
 
-DynamicPatcher based Extensions
+[DynamicPatcher based Extensions](https://github.com/Xkein/PatcherExtension)
 --------
 The framework is designed in Sample.
 It has some simple feature below:
+- Multi-extension manage
+- BulletScript
+  - OnUpdate
 - TechnoScript
   - OnUpdate
+  - OnFire
 - Update script when recompiling (unsafe)
 - Save & Load
 
