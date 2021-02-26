@@ -339,3 +339,7 @@ ASALocalRun/
 # BeatPulse healthcheck temp database
 healthchecksdb
 /MigrationBackup
+/Sample/DynamicPatcher/Libraries
+/Sample/PatcherLoader.dll
+/Sample/DynamicPatcherLICENSE.MD
+/Sample/DynamicPatcher.dll
