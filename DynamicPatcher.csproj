@@ -60,6 +60,7 @@
     <Compile Include="ASM.cs" />
     <Compile Include="CompilationManager.cs" />
     <Compile Include="Hook.cs" />
+    <Compile Include="HookManager.cs" />
     <Compile Include="HookTransferStation.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="Helpers.cs" />

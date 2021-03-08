@@ -33,5 +33,26 @@ namespace DynamicPatcher
         {
             WriteLine.Invoke(obj.ToString());
         }
+
+        public static bool HasException { get; set; } = false;
+        public static void PrintException(Exception e)
+        {
+            HasException = true;
+
+            Logger.Log("{0} info: ", e.GetType().FullName);
+            Logger.Log("Message: " + e.Message);
+            Logger.Log("Source: " + e.Source);
+            Logger.Log("TargetSite.Name: " + e.TargetSite?.Name);
+            Logger.Log("Stacktrace: " + e.StackTrace);
+
+            if (e.InnerException != null)
+            {
+                PrintException(e.InnerException);
+            }
+            else
+            {
+                Logger.Log("");
+            }
+        }
     }
 }

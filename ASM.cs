@@ -9,12 +9,12 @@ namespace DynamicPatcher
 {
     static class ASM
     {
-        static public readonly byte INIT = 0x00;
-        static public readonly byte INT3 = 0xCC;
-        static public readonly byte NOP = 0x90;
+        public const byte INIT = 0x00;
+        public const byte INT3 = 0xCC;
+        public const byte NOP = 0x90;
 
-        static public readonly byte[] Jmp = { 0xE9, INIT, INIT, INIT, INIT };
-        static public readonly byte[] Call = { 0xE8, INIT, INIT, INIT, INIT };
+        public static readonly byte[] Jmp = { 0xE9, INIT, INIT, INIT, INIT };
+        public static readonly byte[] Call = { 0xE8, INIT, INIT, INIT, INIT };
     }
 
     struct JumpStruct
@@ -29,7 +29,7 @@ namespace DynamicPatcher
 
         public int Offset
         {
-            get => To - From - 5;
+            get => To - From - ASM.Jmp.Length;
         }
     }
 
