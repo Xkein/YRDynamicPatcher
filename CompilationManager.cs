@@ -25,6 +25,7 @@ namespace DynamicPatcher
         bool showHidden;
         bool loadTempFileInMemory;
         bool emitPDB;
+        bool forceCompile;
 
         CSharpCompilationOptions compilationOptions;
 
@@ -112,6 +113,7 @@ namespace DynamicPatcher
             showHidden = configs["show_hidden"].ToObject<bool>();
             loadTempFileInMemory = configs["load_temp_file_in_memory"].ToObject<bool>();
             emitPDB = configs["emit_pdb"].ToObject<bool>();
+            forceCompile = configs["force_compile"].ToObject<bool>();
         }
 
         private void LoadSolution(string path)
@@ -218,6 +220,7 @@ namespace DynamicPatcher
             Logger.Log("Diagnostic.ShowHidden: " + showHidden);
             Logger.Log("LoadTempFileInMemory: " + loadTempFileInMemory);
             Logger.Log("EmitPDB: " + emitPDB);
+            Logger.Log("ForceCompile: " + forceCompile);
             Logger.Log("");
 
             CSharpCompilationOptions compilationOptions = compilation.Options;
@@ -301,7 +304,7 @@ namespace DynamicPatcher
                 string outputPath = GetOutputPath(Path.ChangeExtension(path, "tmp"));
 
                 bool codeChanged = false;
-                if (File.Exists(outputPath))
+                if (!forceCompile && File.Exists(outputPath))
                 {
                     FileInfo codeInfo = new FileInfo(path);
                     FileInfo outputInfo = new FileInfo(outputPath);
@@ -368,7 +371,7 @@ namespace DynamicPatcher
             string outputPath = GetOutputPath(Path.ChangeExtension(project.FilePath, "dll"));
 
             bool codeChanged = false;
-            if (File.Exists(outputPath))
+            if (!forceCompile && File.Exists(outputPath))
             {
                 FileInfo outputInfo = new FileInfo(outputPath);
                 foreach (Document document in project.Documents)

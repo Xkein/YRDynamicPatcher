@@ -164,7 +164,7 @@ namespace DynamicPatcher
 							catch (Exception e)
 							{
 								Logger.Log("hook exception caught!");
-								Helpers.PrintException(e);
+								Logger.PrintException(e);
 
 								Logger.Log("TransferStation unhook to run on origin code");
 								TransferStation.UnHook();
