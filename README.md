@@ -108,6 +108,8 @@ the file `DynamicPatcher\compiler.config.json` explanation:
 
 `emit_pdb` : emit pdb message
 
+`force_compile` : force compile all files at start-up.
+
 [YRPP](https://github.com/Xkein/PatcherYRpp)
 --------
 The c# style YRPP is WIP.
