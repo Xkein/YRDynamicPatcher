@@ -117,7 +117,7 @@ namespace DynamicPatcher
 					ASMWriter.WriteJump(new JumpStruct(hook.Address, callable));
 					break;
 				default:
-					Logger.Log("found unkwnow jump hook: " + info.Member.Name);
+					Logger.LogError("found unkwnow jump hook: " + info.Member.Name);
 					break;
 			}
 		}

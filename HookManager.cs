@@ -83,7 +83,7 @@ namespace DynamicPatcher
                         }
                         else if (station.HookInfos.Count <= 0)
                         {
-                            Logger.Log("remove key '{0:X}' because of hook type mismatch. ", key);
+                            Logger.LogWarning("remove key '{0:X}' because of hook type mismatch. ", key);
                             transferStations.Remove(key);
                             station = null;
                         }
@@ -110,7 +110,7 @@ namespace DynamicPatcher
                                 station = new WriteBytesHookTransferStation(info);
                                 break;
                             default:
-                                Logger.Log("found unkwnow hook: " + member.Name);
+                                Logger.LogError("found unkwnow hook: " + member.Name);
                                 return;
                         }
 
@@ -122,7 +122,7 @@ namespace DynamicPatcher
                 }
                 catch (Exception e)
                 {
-                    Logger.Log("hook applied error!");
+                    Logger.LogError("hook applied error!");
                     Logger.PrintException(e);
                 }
             }
@@ -154,7 +154,7 @@ namespace DynamicPatcher
                                 }
                                 else
                                 {
-                                    Logger.Log("remove error! TransferStation has no hook!");
+                                    Logger.LogError("remove error! TransferStation has no hook!");
                                 }
                             }
                         }

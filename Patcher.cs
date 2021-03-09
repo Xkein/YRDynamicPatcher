@@ -168,7 +168,7 @@ namespace DynamicPatcher
         {
             if (Directory.Exists(path) == false)
             {
-                Logger.Log("direction not exists: " + path);
+                Logger.LogError("direction not exists: " + path);
                 return;
             }
 
@@ -212,7 +212,7 @@ namespace DynamicPatcher
             }
             catch (Exception e)
             {
-                Logger.Log("compile error!");
+                Logger.LogError("compile error!");
                 Logger.PrintException(e);
                 return null;
             }
@@ -253,7 +253,7 @@ namespace DynamicPatcher
             }
             else
             {
-                Logger.Log("file compile error: " + path);
+                Logger.LogError("file compile error: " + path);
             }
         }
 
@@ -295,6 +295,10 @@ namespace DynamicPatcher
             }
             else
             {
+                foreach (var pair in FileAssembly.Where(pair => Path.GetFileNameWithoutExtension(pair.Key) == Path.GetFileNameWithoutExtension(path)))
+                {
+                    Logger.LogWarning("{0} has same Assembly name with {1}", pair.Key, path);
+                }
                 FileAssembly.Add(path, assembly);
             }
 
@@ -306,7 +310,7 @@ namespace DynamicPatcher
             }
             catch (Exception e)
             {
-                Logger.Log("apply error!");
+                Logger.LogError("apply error!");
                 Logger.PrintException(e);
             }
         }
