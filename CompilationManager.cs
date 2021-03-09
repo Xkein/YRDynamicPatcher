@@ -328,7 +328,7 @@ namespace DynamicPatcher
 
                     if (result.Success == false)
                     {
-                        Logger.Log("compiler error!");
+                        Logger.LogError("compiler error!");
                         Logger.Log("");
                         return null;
                     }
@@ -397,7 +397,7 @@ namespace DynamicPatcher
 
                 if (result.Success == false)
                 {
-                    Logger.Log("compiler error!");
+                    Logger.LogError("compiler error!");
                     Logger.Log("");
                     return null;
 

@@ -48,7 +48,7 @@ namespace DynamicPatcher
                     }
                     catch (Exception e)
                     {
-                        Logger.Log("get process handle error: " + e.Message);
+                        Logger.LogError("get process handle error: " + e.Message);
                         throw e;
                     }
                 }

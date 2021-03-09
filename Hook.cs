@@ -163,10 +163,10 @@ namespace DynamicPatcher
 							}
 							catch (Exception e)
 							{
-								Logger.Log("hook exception caught!");
+								Logger.LogError("hook exception caught!");
 								Logger.PrintException(e);
 
-								Logger.Log("TransferStation unhook to run on origin code");
+								Logger.LogWarning("TransferStation unhook to run on origin code");
 								TransferStation.UnHook();
 								return (uint)hook.Address;
 							}

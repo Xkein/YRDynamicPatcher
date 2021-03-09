@@ -19,7 +19,7 @@ namespace DynamicPatcher
         {
             string str = string.Format(format, args);
 
-            WriteLine.Invoke(str);
+            Logger.Log(str);
         }
 
         /// <summary>Write string to logger.</summary>
@@ -31,28 +31,84 @@ namespace DynamicPatcher
         /// <summary>Write object to logger.</summary>
         static public void Log(object obj)
         {
-            WriteLine.Invoke(obj.ToString());
+            Logger.Log(obj.ToString());
         }
 
+        /// <summary>Get if PrintException has invoked.</summary>
         public static bool HasException { get; set; } = false;
+
+        /// <summary>Print exception and its InnerException recursively.</summary>
         public static void PrintException(Exception e)
         {
             HasException = true;
 
-            Logger.Log("{0} info: ", e.GetType().FullName);
-            Logger.Log("Message: " + e.Message);
-            Logger.Log("Source: " + e.Source);
-            Logger.Log("TargetSite.Name: " + e.TargetSite?.Name);
-            Logger.Log("Stacktrace: " + e.StackTrace);
+            PrintExceptionBase(e);
+            Logger.Log("");
+        }
+
+        private static void PrintExceptionBase(Exception e)
+        {
+            Logger.LogError("{0} info: ", e.GetType().FullName);
+            Logger.LogError("Message: " + e.Message);
+            Logger.LogError("Source: " + e.Source);
+            Logger.LogError("TargetSite.Name: " + e.TargetSite?.Name);
+            Logger.LogError("Stacktrace: " + e.StackTrace);
 
             if (e.InnerException != null)
             {
                 PrintException(e.InnerException);
             }
-            else
-            {
-                Logger.Log("");
-            }
+        }
+
+        /// <summary>Write string to logger with color.</summary>
+        public static void LogWithColor(string str, ConsoleColor color)
+        {
+            ConsoleColor originColor = Console.ForegroundColor;
+            Console.ForegroundColor = color;
+
+            Logger.Log(str);
+
+            Console.ForegroundColor = originColor;
+        }
+
+        /// <summary>Write format string to logger with error state.</summary>
+        static public void LogError(string format, params object[] args)
+        {
+            string str = string.Format(format, args);
+
+            Logger.LogError(str);
+        }
+
+        /// <summary>Write string to logger with error state.</summary>
+        static public void LogError(string str)
+        {
+            Logger.LogWithColor("[Error] " + str, ConsoleColor.Red);
+        }
+
+        /// <summary>Write object to logger with error state.</summary>
+        static public void LogError(object obj)
+        {
+            Logger.LogError(obj.ToString());
+        }
+
+        /// <summary>Write format string to logger with warning state.</summary>
+        static public void LogWarning(string format, params object[] args)
+        {
+            string str = string.Format(format, args);
+
+            Logger.LogWarning(str);
+        }
+
+        /// <summary>Write string to logger with warning state.</summary>
+        static public void LogWarning(string str)
+        {
+            Logger.LogWithColor("[Warning] " + str, ConsoleColor.Yellow);
+        }
+
+        /// <summary>Write object to logger with warning state.</summary>
+        static public void LogWarning(object obj)
+        {
+            Logger.LogWarning(obj.ToString());
         }
     }
 }
