@@ -22,6 +22,7 @@ We can use it to do something below:
 - Recoverable Hook
 - Recoverable Hook from Exception
 - Dynamic Compile & Syringe Technique
+- Hook Conflict Detection
 
 
 Examples
