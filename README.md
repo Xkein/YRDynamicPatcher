@@ -33,6 +33,8 @@ Examples
 
 ![try-catch](Sample/try-catch.gif)
 
+![fire_update_script](Sample/fire_update_script.gif)
+
 Usage
 --------
 Put `PatcherLoader.dll` and `DynamicPatcher.dll` on your YR directory and launch Syringe targeting your YR executable (usually `gamemd.exe`).
