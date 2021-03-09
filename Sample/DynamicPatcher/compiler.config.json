@@ -8,5 +8,6 @@
     ],
     "show_hidden" : false,
     "load_temp_file_in_memory" : false,
-    "emit_pdb" : true
+    "emit_pdb" : true,
+    "force_compile" : false
 }

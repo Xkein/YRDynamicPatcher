@@ -52,7 +52,7 @@ namespace ExtensionHooks
             }
 			catch (Exception e)
 			{
-                Helpers.PrintException(e);
+                Logger.PrintException(e);
 				return (uint)0;
 			}
         }
