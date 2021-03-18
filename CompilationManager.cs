@@ -313,6 +313,14 @@ namespace DynamicPatcher
                     {
                         codeChanged = true;
                     }
+                    else if (compilation.References.Count() > 0)
+                    {
+                        foreach (FileInfo fileChanged in compilation.References.Select(r => new FileInfo(r.Display)).Where(f => f.LastWriteTime > outputInfo.LastWriteTime))
+                        {
+                            codeChanged = true;
+                            Logger.Log("{0} changed.", fileChanged.FullName);
+                        }
+                    }
                 }
                 else
                 {
@@ -362,6 +370,17 @@ namespace DynamicPatcher
             }
         }
 
+        private DateTime GetProjectBuildTime(Project project)
+        {
+            string outputPath = GetOutputPath(Path.ChangeExtension(project.FilePath, "dll"));
+            if (File.Exists(outputPath))
+            {
+                FileInfo outputInfo = new FileInfo(outputPath);
+                return outputInfo.LastWriteTime;
+            }
+            return DateTime.FromBinary(0L);
+        }
+
         private Assembly CompileProject(Project project)
         {
             Logger.Log("compiling project: " + project.FilePath);
@@ -373,13 +392,29 @@ namespace DynamicPatcher
             bool codeChanged = false;
             if (!forceCompile && File.Exists(outputPath))
             {
-                FileInfo outputInfo = new FileInfo(outputPath);
-                foreach (Document document in project.Documents)
+                DateTime newest = project.Documents.Select(document => new FileInfo(document.FilePath)).Max(code => code.LastWriteTime);
+                DateTime buildTime = GetProjectBuildTime(project);
+
+                if (newest > buildTime)
                 {
-                    FileInfo codeInfo = new FileInfo(document.FilePath);
-                    if (codeInfo.LastWriteTime > outputInfo.LastWriteTime)
+                    codeChanged = true;
+                }
+                else if (project.ProjectReferences.Count() > 0)
+                {
+                    foreach (Project projectChanged in project.ProjectReferences.
+                                                        Select(r => solution.GetProject(r.ProjectId)).
+                                                        Where(p => GetProjectBuildTime(p) > buildTime))
                     {
                         codeChanged = true;
+                        Logger.Log("{0} changed.", projectChanged.FilePath);
+                    }
+                }
+                else if (project.MetadataReferences.Count() > 0)
+                {
+                    foreach (FileInfo fileChanged in project.MetadataReferences.Select(r => new FileInfo(r.Display)).Where(f => f.LastWriteTime > buildTime))
+                    {
+                        codeChanged = true;
+                        Logger.Log("{0} changed.", fileChanged.FullName);
                     }
                 }
             }
