@@ -120,11 +120,8 @@ The c# style YRPP is WIP.
 The framework is designed in Sample.
 It has some simple feature below:
 - Multi-extension manage
-- BulletScript
-  - OnUpdate
-- TechnoScript
-  - OnUpdate
-  - OnFire
+- Decorators
+- Scripts
 - Update script when recompiling (unsafe)
 - Save & Load
 
