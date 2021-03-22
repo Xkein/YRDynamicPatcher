@@ -61,7 +61,7 @@ namespace ExtensionHooks
         {
             Pointer<TechnoClass> pTechno = (IntPtr)R->ECX;
             var pCoord = R->Stack<Pointer<CoordStruct>>(0x4);
-            var faceDir = R->Stack<int>(0x8);
+            var faceDir = R->Stack<Direction>(0x8);
 
             TechnoExt ext = TechnoExt.ExtMap.Find(pTechno);
             ext.Scriptable?.OnPut(pCoord.Data, faceDir);
@@ -91,7 +91,7 @@ namespace ExtensionHooks
             var pAttackingHouse = R->Stack<Pointer<HouseClass>>(0x1C);
 
             TechnoExt ext = TechnoExt.ExtMap.Find(pTechno);
-            ext.Scriptable?.OnReceiveDamage(pDamage.Data, distanceFromEpicenter, pWH, pAttacker, ignoreDefenses, preventPassengerEscape, pAttackingHouse);
+            ext.Scriptable?.OnReceiveDamage(pDamage, distanceFromEpicenter, pWH, pAttacker, ignoreDefenses, preventPassengerEscape, pAttackingHouse);
 
             return 0;
         }
