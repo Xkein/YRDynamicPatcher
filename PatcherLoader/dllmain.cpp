@@ -156,6 +156,9 @@ void ActiveByCOM2() {
     //CoUninitialize();
 }
 
+#include <filesystem>
+#include "Registration.h"
+
 auto Action = []() {
     if (AllocConsole()) {
         //using System::Reflection::Assembly;
@@ -171,8 +174,13 @@ auto Action = []() {
         //Console::WriteLine("load succeed");
 
         //ActiveByCLR();
+
+        std::filesystem::path current_path = std::filesystem::current_path();
+        std::filesystem::path DynamicPatcherDLL = current_path / L"DynamicPatcher.dll";
+        Registration::Register(DynamicPatcherDLL);
         //ActiveByCOM();
         ActiveByCOM2();
+        Registration::Unregister(DynamicPatcherDLL);
     }
     else {
         MessageBoxW(NULL, TEXT("alloc console error"), TEXT("PatcherLoader"), MB_OK);
