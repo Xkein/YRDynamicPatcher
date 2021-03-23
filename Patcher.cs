@@ -63,6 +63,9 @@ namespace DynamicPatcher
 
         void ConsoleWriteLine(string str) => Console.WriteLine(str);
 
+        /// <summary>Occurs when an exception is not caught.</summary>
+        public event UnhandledExceptionEventHandler ExceptionHandler;
+
         internal void Init(string workDir)
         {
             FileStream logFileStream = new FileStream(Path.Combine(workDir, "patcher.log"), FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
@@ -73,7 +76,15 @@ namespace DynamicPatcher
                 logFileWriter.WriteLine(str); logFileWriter.Flush();
             };
 
-            Action CopyErrorLog = () =>
+            ExceptionHandler += (object sender, UnhandledExceptionEventArgs args) =>
+            {
+                if(args != null)
+                {
+                    Logger.PrintException(args.ExceptionObject as Exception);
+                }
+            };
+
+            ExceptionHandler += (object sender,  UnhandledExceptionEventArgs args) =>
             {
                 string dir = Path.Combine(workDir, "ErrorLogs");
                 Directory.CreateDirectory(dir);
@@ -83,15 +94,6 @@ namespace DynamicPatcher
                     Path.Combine(dir, string.Format("ErrorLog_{0}_{1}_{2}_{3}_{4}.log",
                     date.Year, date.Month, date.Day, date.Hour, date.Minute)), true);
                 System.Windows.Forms.MessageBox.Show("ErrorLog Created", "Dynamic Patcher");
-            };
-
-            Process process = Process.GetCurrentProcess();
-            process.EnableRaisingEvents = true;
-            process.Exited += (object sender, EventArgs e) => {
-                if (Logger.HasException)
-                {
-                    CopyErrorLog();
-                }
             };
 
             try
