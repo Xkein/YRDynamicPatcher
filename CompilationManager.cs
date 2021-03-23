@@ -295,13 +295,13 @@ namespace DynamicPatcher
 
             using (FileStream file = File.OpenRead(path))
             {
+                string outputPath = GetOutputPath(Path.ChangeExtension(path, "tmp"));
+#if DEVMODE
                 SourceText source = SourceText.From(file);
                 SyntaxTree tree = CSharpSyntaxTree.ParseText(source);
 
                 string fileName = Path.GetFileNameWithoutExtension(path);
                 Compilation compiler = compilation.AddSyntaxTrees(tree).WithAssemblyName(fileName);
-
-                string outputPath = GetOutputPath(Path.ChangeExtension(path, "tmp"));
 
                 bool codeChanged = false;
                 if (!forceCompile && File.Exists(outputPath))
@@ -315,7 +315,9 @@ namespace DynamicPatcher
                     }
                     else if (compilation.References.Count() > 0)
                     {
-                        foreach (FileInfo fileChanged in compilation.References.Select(r => new FileInfo(r.Display)).Where(f => f.LastWriteTime > outputInfo.LastWriteTime))
+                        foreach (FileInfo fileChanged in compilation.References.
+                                                            Select(r => new FileInfo(r.Display)).
+                                                            Where(f => f.LastWriteTime > outputInfo.LastWriteTime))
                         {
                             codeChanged = true;
                             Logger.Log("{0} changed.", fileChanged.FullName);
@@ -359,14 +361,12 @@ namespace DynamicPatcher
                         tmpFile.CopyTo(memory);
                     }
 
-                    Assembly assembly = Assembly.Load(memory.ToArray());
-                    return assembly;
+                    Assembly assembly_in_memory = Assembly.Load(memory.ToArray());
+                    return assembly_in_memory;
                 }
-                else
-                {
-                    Assembly assembly = Assembly.LoadFrom(outputPath);
-                    return assembly;
-                }
+#endif
+                Assembly assembly = Assembly.LoadFrom(outputPath);
+                return assembly;
             }
         }
 
@@ -385,9 +385,9 @@ namespace DynamicPatcher
         {
             Logger.Log("compiling project: " + project.FilePath);
 
-            Compilation projectCompilation = project.GetCompilationAsync().Result;
-
             string outputPath = GetOutputPath(Path.ChangeExtension(project.FilePath, "dll"));
+#if DEVMODE
+            Compilation projectCompilation = project.GetCompilationAsync().Result;
 
             bool codeChanged = false;
             if (!forceCompile && File.Exists(outputPath))
@@ -435,7 +435,6 @@ namespace DynamicPatcher
                     Logger.LogError("compiler error!");
                     Logger.Log("");
                     return null;
-
                 }
 
                 Logger.Log("compile project '{0}' succeed!", project.Name);
@@ -447,7 +446,7 @@ namespace DynamicPatcher
                 Logger.Log("code is older than assembly, use old assembly.");
                 Logger.Log("");
             }
-
+#endif
             Assembly assembly = Assembly.LoadFrom(outputPath);
             return assembly;
         }
