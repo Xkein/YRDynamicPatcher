@@ -61,6 +61,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ASM.cs" />
+    <Compile Include="CodeWatcher.cs" />
     <Compile Include="CompilationManager.cs" />
     <Compile Include="Hook.cs" />
     <Compile Include="HookManager.cs" />

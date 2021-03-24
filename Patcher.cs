@@ -35,8 +35,6 @@ namespace DynamicPatcher
     /// <summary>The class of DynamicPatcher.</summary>
     public class Patcher
     {
-        List<FileSystemWatcher> watchers = new List<FileSystemWatcher>();
-
         private CompilationManager CompilationManager { get; set; }
 
         /// <summary>The map of 'filename -> assembly'.</summary>
@@ -46,6 +44,7 @@ namespace DynamicPatcher
         public event AssemblyRefreshEventHandler AssemblyRefresh;
 
         HookManager hookManager = new HookManager();
+        CodeWatcher codeWatcher;
 
         internal Patcher()
         {
@@ -137,73 +136,20 @@ namespace DynamicPatcher
                 }
 
                 CompilationManager = new CompilationManager(workDir);
+
+                codeWatcher = new CodeWatcher(workDir);
+                codeWatcher.FirstAction += FirstCompile;
+                codeWatcher.OnCodeChanged += OnCodeChanged;
             }
             catch (Exception e)
             {
                 Logger.PrintException(e);
             }
-
-            stopwatch.Start();
         }
 
-        /// <summary>Create a thread watching any changes of directory.</summary>
-        public Task StartWatchPath(string path)
+        internal Task Start()
         {
-            Task firstCompileTask = Task.Run(() =>
-            {
-                FirstCompile(path);
-            });
-            Task.Run(() =>
-            {
-                Logger.Log("waiting for first compile to complete");
-                firstCompileTask.Wait();
-                Logger.Log("first compile complete!");
-
-                WatchPath(path);
-            });
-
-            return firstCompileTask;
-        }
-
-        /// <summary>Watch any changes of directory.</summary>
-        public void WatchPath(string path)
-        {
-            if (Directory.Exists(path) == false)
-            {
-                Logger.LogError("direction not exists: " + path);
-                return;
-            }
-
-            var watcher = new FileSystemWatcher(path, "*.cs");
-
-            watcher.Created += new FileSystemEventHandler(OnFileChanged);
-            watcher.Changed += new FileSystemEventHandler(OnFileChanged);
-            watcher.Deleted += new FileSystemEventHandler(OnFileChanged);
-            //watcher.Renamed += new RenamedEventHandler(OnRenamed);
-            watcher.IncludeSubdirectories = true;
-            watcher.EnableRaisingEvents = true;
-
-            watchers.Add(watcher);
-        }
-
-        Dictionary<string, TimeSpan> lastModifications = new Dictionary<string, TimeSpan>();
-        Stopwatch stopwatch = new Stopwatch();
-
-        private bool IsFileChanged(string path)
-        {
-            if (lastModifications.ContainsKey(path))
-            {
-                if (stopwatch.Elapsed - lastModifications[path] <= TimeSpan.FromSeconds(3.0))
-                {
-                    return false;
-                }
-                lastModifications[path] = stopwatch.Elapsed;
-            }
-            else
-            {
-                lastModifications.Add(path, stopwatch.Elapsed);
-            }
-            return true;
+            return codeWatcher.StartWatchPath();
         }
 
         private Assembly TryCompile(string path)
@@ -220,14 +166,9 @@ namespace DynamicPatcher
             }
         }
 
-        private void OnFileChanged(object sender, FileSystemEventArgs e)
+        private void OnCodeChanged(object sender, FileSystemEventArgs e)
         {
             string path = e.FullPath;
-
-            if (IsFileChanged(path) == false)
-            {
-                return;
-            }
 
             Logger.Log("");
             Logger.Log("detected file {0}: {1}", e.ChangeType, path);

@@ -39,7 +39,7 @@ namespace DynamicPatcher
 
             Patcher = new Patcher();
             Patcher.Init(workDir);
-            Task task = Patcher.StartWatchPath(workDir);
+            Task task = Patcher.Start();
 
             task.Wait(TimeSpan.FromSeconds(1.14514));
         }
