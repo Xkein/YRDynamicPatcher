@@ -47,30 +47,34 @@ namespace Scripts
         
         static Random random = new Random(1919810);
         static Pointer<WeaponTypeClass> Weapon => WeaponTypeClass.ABSTRACTTYPE_ARRAY.Find("RedEye2");
+        static Pointer<WarheadTypeClass> Warhead => WarheadTypeClass.ABSTRACTTYPE_ARRAY.Find("BlimpHE");
+
 
         int rof = 5;
         public override void OnUpdate()
         {
-            if (Owner.Get() == null || lifetime-- <= 0)
+            if (Owner.Get() == null || lifetime <= 0)
             {
                 Decorative.Remove(this);
                 return;
             }
 
-            if (rof-- > 0) {
+            if (rof-- > 0 && --lifetime > 0) {
                 return;
             }
             rof = 5;
+
+            int damage = lifetime > 0 ? 10 : 100;
 
             TechnoExt target = Decorative as TechnoExt;
             
             Pointer<WeaponTypeClass> pWeapon = Weapon;
             Pointer<BulletClass> pBullet = pWeapon.Ref.Projectile.Ref.
                 CreateBullet(target.OwnerObject.Convert<AbstractClass>(), Owner.Get().OwnerObject,
-                 /*pWeapon.Ref.Damage*/10, pWeapon.Ref.Warhead, pWeapon.Ref.Speed, pWeapon.Ref.Bright);
+                 damage, Warhead, pWeapon.Ref.Speed, pWeapon.Ref.Bright);
                  
-            CoordStruct curLocation = target.OwnerObject.Ref.Base.Base.GetCoords();
             const int radius = 600;
+            CoordStruct curLocation = target.OwnerObject.Ref.Base.Base.GetCoords();
             CoordStruct where = curLocation + new CoordStruct(random.Next(-radius, radius), random.Next(-radius, radius), 2000);
             BulletVelocity velocity = new BulletVelocity(0,0,0);
             pBullet.Ref.MoveTo(where, velocity);
