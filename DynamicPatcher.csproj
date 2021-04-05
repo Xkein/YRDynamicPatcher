@@ -69,6 +69,7 @@
     <Compile Include="Logger.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="MemoryHandle.cs" />
+    <Compile Include="PackageManager.cs" />
     <Compile Include="Patcher.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

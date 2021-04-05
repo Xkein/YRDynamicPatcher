@@ -26,6 +26,9 @@ namespace DynamicPatcher
         bool loadTempFileInMemory;
         bool emitPDB;
         bool forceCompile;
+        bool packAssembly;
+
+        PackageManager packageManager;
 
         CSharpCompilationOptions compilationOptions;
 
@@ -39,6 +42,8 @@ namespace DynamicPatcher
             workDirectory = workDir;
 
             LoadConfig(workDir);
+
+            packageManager = new PackageManager(workDir);
 
             compilationOptions = new CSharpCompilationOptions(
                             OutputKind.DynamicallyLinkedLibrary,
@@ -114,6 +119,7 @@ namespace DynamicPatcher
             loadTempFileInMemory = configs["load_temp_file_in_memory"].ToObject<bool>();
             emitPDB = configs["emit_pdb"].ToObject<bool>();
             forceCompile = configs["force_compile"].ToObject<bool>();
+            packAssembly = configs["pack_assembly"].ToObject<bool>();
         }
 
         private void LoadSolution(string path)
@@ -221,6 +227,7 @@ namespace DynamicPatcher
             Logger.Log("LoadTempFileInMemory: " + loadTempFileInMemory);
             Logger.Log("EmitPDB: " + emitPDB);
             Logger.Log("ForceCompile: " + forceCompile);
+            Logger.Log("PackAssembly: " + packAssembly);
             Logger.Log("");
 
             CSharpCompilationOptions compilationOptions = compilation.Options;
@@ -365,6 +372,15 @@ namespace DynamicPatcher
                     return assembly_in_memory;
                 }
 #endif
+                if (packAssembly)
+                {
+#if DEVMODE
+                    packageManager.Pack(outputPath);
+#else
+                    packageManager.UnPack(outputPath);
+#endif
+                }
+
                 Assembly assembly = Assembly.LoadFrom(outputPath);
                 return assembly;
             }
@@ -447,6 +463,15 @@ namespace DynamicPatcher
                 Logger.Log("");
             }
 #endif
+            if (packAssembly)
+            {
+#if DEVMODE
+                packageManager.Pack(outputPath);
+#else
+                packageManager.UnPack(outputPath);
+#endif
+            }
+
             Assembly assembly = Assembly.LoadFrom(outputPath);
             return assembly;
         }
