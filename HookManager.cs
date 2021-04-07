@@ -54,6 +54,26 @@ namespace DynamicPatcher
                     }
                 }
             }
+
+            // check jmp in range (targetAddress - ASM.Jmp.Length, targetAddress + size)
+            int checkAddress = targetAddress - ASM.Jmp.Length + 1;
+            byte[] buffer = new byte[targetAddress - checkAddress + size];
+            MemoryHelper.Read(checkAddress, buffer, buffer.Length);
+            for (int i = 0; i < buffer.Length; i++)
+            {
+                if(buffer[i] == ASM.Jmp[0])
+                {
+                    JumpStruct jmp = new JumpStruct(checkAddress + i, 0) { Offset = BitConverter.ToInt32(buffer, i + 1) };
+                    if (jmp.From != targetAddress)
+                    {
+                        Logger.LogWarning("{0} destroy 'JMP {1:X}' at {2}.", info.Member.Name, jmp.Offset, jmp.From);
+                    }
+                    else if (jmp.To < 0x400000 || jmp.To > 0x7F0000)
+                    {
+                        Logger.LogWarning("{0} overwrite 'JMP {1:X}', which may jump to other module.", info.Member.Name, jmp.Offset);
+                    }
+                }
+            }
         }
 
         public void ApplyHook(MemberInfo member)

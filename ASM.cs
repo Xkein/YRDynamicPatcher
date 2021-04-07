@@ -30,6 +30,7 @@ namespace DynamicPatcher
         public int Offset
         {
             get => To - From - ASM.Jmp.Length;
+            set => To = From + value + ASM.Jmp.Length;
         }
     }
 
