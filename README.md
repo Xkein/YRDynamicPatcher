@@ -34,6 +34,10 @@ Examples
 
 ![try-catch](Sample/try-catch.gif)
 
+![fire_update_script](Sample/fire_update_script.gif)
+
+![event_decorator](Sample/event_decorator.gif)
+
 Usage
 --------
 Put `PatcherLoader.dll` and `DynamicPatcher.dll` on your YR directory and launch Syringe targeting your YR executable (usually `gamemd.exe`).
@@ -46,7 +50,9 @@ Everythings could be gained from released files.(recommend)
 
 The patcher will search exist files at first or detected every file changes later. Next compile the file and syringe.
 
-**Patcher will compare the code files and compiled assemblies to skip unnecessary compile.** If you meet some stranger problem, try deleting the directory `DynamicPatcher\Build`.
+**Patcher will check the file time between code files and compiled assemblies and dependencies to skip unnecessary compile.
+
+** If you meet some stranger problem, try deleting the directory `DynamicPatcher\Build`.
 
 Hook
 --------
@@ -110,6 +116,16 @@ the file `DynamicPatcher\compiler.config.json` explanation:
 `emit_pdb` : emit pdb message
 
 `force_compile` : force compile all files at start-up.
+
+`pack_assembly` : pack/unpack builded assemblies for release.
+
+
+Release Mode
+--------
+- Compile or take the DynamicPatcher without DEVMODE.
+- Set `pack_assembly` to true (`DynamicPatcher\Packages` needed).
+- Remove the directory `DynamicPatcher\Build`
+
 
 [YRPP](https://github.com/Xkein/PatcherYRpp)
 --------
