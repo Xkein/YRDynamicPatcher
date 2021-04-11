@@ -66,11 +66,11 @@ namespace DynamicPatcher
                     JumpStruct jmp = new JumpStruct(checkAddress + i, 0) { Offset = BitConverter.ToInt32(buffer, i + 1) };
                     if (jmp.From != targetAddress)
                     {
-                        Logger.LogWarning("{0} destroy 'JMP {1:X}' at {2}.", info.Member.Name, jmp.Offset, jmp.From);
+                        Logger.LogWarning("{0} destroy 'JMP 0x{1:X}' at 0x{2:X}.", info.Member.Name, jmp.Offset, jmp.From);
                     }
                     else if (jmp.To < 0x400000 || jmp.To > 0x7F0000)
                     {
-                        Logger.LogWarning("{0} overwrite 'JMP {1:X}', which may jump to other module.", info.Member.Name, jmp.Offset);
+                        Logger.LogWarning("{0} overwrite 'JMP 0x{1:X}', which may jump to other module.", info.Member.Name, jmp.Offset);
                     }
                 }
             }
