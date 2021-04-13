@@ -42,7 +42,7 @@ namespace Scripts
             }
         }
 
-        [Hook(HookType.WriteBytesHook, Address = 0x7E03E8, Size = 5)]
+        //[Hook(HookType.WriteBytesHook, Address = 0x7E03E8, Size = 5)]
         static public byte[] set_time()
         {
             reset_time();
