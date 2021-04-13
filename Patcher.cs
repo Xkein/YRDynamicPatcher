@@ -223,6 +223,7 @@ namespace DynamicPatcher
                     else
                     {
                         Logger.Log("first compile error: " + file.FullName);
+                        Logger.Log("");
                     }
                 }
             }

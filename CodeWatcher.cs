@@ -22,11 +22,13 @@ namespace DynamicPatcher
         Dictionary<string, TimeSpan> lastModifications = new Dictionary<string, TimeSpan>();
         Stopwatch stopwatch = new Stopwatch();
         string workDir;
+        string filter;
 
         /// <summary>Initializes a new instance of the CodeWatcher class.</summary>
-        public CodeWatcher(string path)
+        public CodeWatcher(string path, string filter = "*.cs")
         {
             workDir = path;
+            this.filter = filter;
             stopwatch.Start();
         }
 
@@ -35,7 +37,7 @@ namespace DynamicPatcher
         {
             Task firstTask = Task.Run(() =>
             {
-                FirstAction(workDir);
+                FirstAction?.Invoke(workDir);
             });
 
             Task.Run(() =>
@@ -59,7 +61,7 @@ namespace DynamicPatcher
                 return;
             }
 
-            var watcher = new FileSystemWatcher(workDir, "*.cs");
+            var watcher = new FileSystemWatcher(workDir, filter);
 
             watcher.Created += new FileSystemEventHandler(OnFileChanged);
             watcher.Changed += new FileSystemEventHandler(OnFileChanged);
