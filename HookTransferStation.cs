@@ -191,14 +191,14 @@ namespace DynamicPatcher
 				if (hook.Size > 0)
 				{ // write origin code
 					MemoryHelper.Write(origin_code_offset, code_over, hook.Size);
-					// protected ares hook
-					if(code_over[0] == ASM.Jmp[0])
+					// protect relative jmp or call
+					if(code_over[0] == ASM.Jmp[0] || code_over[0] == ASM.Call[0])
 					{
 						int destination = 0;
 						MemoryHelper.Read(hook.Address + 1, ref destination);
 						destination = hook.Address + 5 + destination;
 
-						ASMWriter.WriteJump(new JumpStruct(origin_code_offset, destination));
+						MemoryHelper.Write(origin_code_offset + 1, new JumpStruct(origin_code_offset, destination).Offset);
 					}
 				}
 
