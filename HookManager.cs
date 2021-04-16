@@ -63,7 +63,10 @@ namespace DynamicPatcher
             {
                 if(buffer[i] == ASM.Jmp[0])
                 {
-                    JumpStruct jmp = new JumpStruct(checkAddress + i, 0) { Offset = BitConverter.ToInt32(buffer, i + 1) };
+                    int offset = 0;
+                    MemoryHelper.Read(checkAddress + i, ref offset);
+
+                    JumpStruct jmp = new JumpStruct(checkAddress + i, 0) { Offset = offset };
                     if (jmp.From != targetAddress)
                     {
                         Logger.LogWarning("{0} destroy 'JMP 0x{1:X}' at 0x{2:X}.", info.Member.Name, jmp.Offset, jmp.From);
