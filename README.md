@@ -20,7 +20,7 @@ We can use it to do something below:
   - Direct jump to address
   - Write bytes to address
 - Recoverable Hook
-- Recoverable Hook from Exception
+- Recoverable Hook from Exception (if caught)
 - Dynamic Compile & Syringe Technique
 - Hook Conflict Detection
 
@@ -47,6 +47,10 @@ Create the directory `DynamicPatcher` and put `dynamicpatcher.config.json` & `co
 Create the directory `DynamicPatcher\Libraries` and put necessary assembly on it.
 
 Everythings could be gained from released files.(recommend)
+
+Start-up
+--------
+DP includes some function of syringe, but at present it needs syringe to activate. In the future, we can activate DP through PatcherLauncher.
 
 The patcher will search exist files at first or detected every file changes later. Next compile the file and syringe.
 
@@ -90,9 +94,26 @@ namespace PatcherSample
 
             return 0x6FCFBE;
         }
+        
+        static public object writebytesfunc() => new byte[]{0x11,0x45,0x14,0x19,0x19,0x81};
+		public delegate object writebytesdlg();
+
+        [Hook(HookType.WriteBytesHook, Address = 0x7E03E0, Size = 8)]
+        static public writebytesdlg writebytestest = writebytesfunc;
+        
+        static public object errorlogtestfunc() => throw new InvalidOperationException("you can't call this function.");
+		public delegate object errorlogtestdlg();
+
+        [Hook(HookType.WriteBytesHook, Address = 0x7E03F0, Size = 5)]
+        static public errorlogtestdlg errorlogtest = errorlogtestfunc;
     }
 }
 ```
+- HookAttribute Target
+  - Method
+  - Field
+  - Property
+
 
 Configuration
 --------
@@ -127,20 +148,44 @@ Release Mode
 - Remove the directory `DynamicPatcher\Build`
 
 
-[YRPP](https://github.com/Xkein/PatcherYRpp)
---------
-The c# style YRPP is WIP.
-
 [DynamicPatcher based Extensions](https://github.com/Xkein/PatcherExtension)
 --------
-The framework is designed in Sample.
-It has some simple feature below:
+The extension is divided into 2 parts —— dynamic and static.
+
+Dynamic means that you can edit when game running.
+
+- Dynamic
+  1. Hooks
+  2. ...
+   
+- Static
+  1. APIs (Many helpers)
+  2. Structure Definitions
+  3. Managers
+  4. ...
+
+
+Sample has some simple feature below:
 - Multi-extension manage
 - Decorators
 - Scripts
 - Update script when recompiling (unsafe)
 - Save & Load
 
+[YRPP](https://github.com/Xkein/PatcherYRpp)
+--------
+YRPP is a dynamic part of Extension.
+
+It give some game structure and helpers in C# style.
+
 Legal
 -----
 This project has no direct affiliation with Electronic Arts Inc. Command & Conquer, Command & Conquer Red Alert 2, Command & Conquer Yuri's Revenge are registered trademarks of Electronic Arts Inc. All Rights Reserved.
+
+Support Me
+-----
+[Patreon](https://www.patreon.com/Xkein)
+
+[Alipay](https://github.com/Xkein/Images/blob/master/SupportMe/alipay.jpg?raw=true)
+
+[WeChat](https://github.com/Xkein/Images/blob/master/SupportMe/wechat.png?raw=true)
