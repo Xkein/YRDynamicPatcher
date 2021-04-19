@@ -130,6 +130,8 @@ the file `DynamicPatcher\compiler.config.json` explanation:
 
 `references` : the assemblies it referenced.
 
+`preprocessor_symbols` : define preprocessor symbols.
+
 `show_hidden` : show hidden message of compiler
 
 `load_temp_file_in_memory` : load temp file into memory. set false if want to Save & Load. set true if want to modify code dynamically.
