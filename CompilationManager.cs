@@ -290,8 +290,8 @@ namespace DynamicPatcher
                 {
                     continue;
                 }
-                string message = "" + diagnostic.ToString();
-                Logger.Log(message);
+
+                Logger.Log(diagnostic.ToString());
             }
             Logger.Log("");
         }
@@ -341,7 +341,14 @@ namespace DynamicPatcher
                     string pdbPath = Path.ChangeExtension(outputPath, "pdb");
                     var result = compiler.Emit(outputPath, pdbPath: emitPDB ? pdbPath : null);
 
-                    ShowDiagnostics(result.Diagnostics);
+                    // unknown blocking reason
+                    Task task = Task.Run(() => ShowDiagnostics(result.Diagnostics));
+                    if (task.Wait(TimeSpan.FromSeconds(1)) == false)
+                    {
+                        Logger.LogWarning("ShowDiagnostics is blocked from unknown reason, check it from the text below.");
+                    }
+
+                    //ShowDiagnostics(result.Diagnostics);
 
                     if (result.Success == false)
                     {

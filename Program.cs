@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DynamicPatcher
@@ -40,8 +41,7 @@ namespace DynamicPatcher
             Patcher = new Patcher();
             Patcher.Init(workDir);
             Task task = Patcher.Start();
-
-            task.Wait(TimeSpan.FromSeconds(1.14514));
+            task.Wait(/*TimeSpan.FromSeconds(1.114514)*/);
         }
 
         private static void CurrentDomain_AssemblyLoad(object sender, AssemblyLoadEventArgs args)

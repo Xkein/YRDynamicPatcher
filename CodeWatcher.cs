@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DynamicPatcher
@@ -42,9 +43,9 @@ namespace DynamicPatcher
 
             Task.Run(() =>
             {
-                Logger.Log("waiting for first action to complete");
+                Logger.Log("{0}: waiting for first action to complete.", Path.Combine(workDir, filter));
                 firstTask.Wait();
-                Logger.Log("first action complete!");
+                Logger.Log("{0}: first action complete!", Path.Combine(workDir, filter));
 
                 WatchPath();
             });

@@ -69,10 +69,11 @@ namespace DynamicPatcher
         {
             FileStream logFileStream = new FileStream(Path.Combine(workDir, "patcher.log"), FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
             var logFileWriter = new StreamWriter(logFileStream);
+            logFileWriter.AutoFlush = true;
 
             Logger.WriteLine += (string str) =>
             {
-                logFileWriter.WriteLine(str); logFileWriter.Flush();
+                logFileWriter.WriteLine(str);
             };
 
             ExceptionHandler += (object sender, UnhandledExceptionEventArgs args) =>
@@ -207,6 +208,8 @@ namespace DynamicPatcher
             var dir = new DirectoryInfo(path);
             var list = dir.GetFiles("*.cs", SearchOption.AllDirectories).ToList();
 
+            List<Tuple<string, Assembly>> assemblies = new();
+
             foreach (var file in list)
             {
                 string filePath = file.FullName;
@@ -218,7 +221,8 @@ namespace DynamicPatcher
 
                     if (assembly != null)
                     {
-                        RefreshAssembly(filePath, assembly);
+                        assemblies.Add(new Tuple<string, Assembly>(filePath, assembly));
+                        //RefreshAssembly(filePath, assembly);
                     }
                     else
                     {
@@ -227,6 +231,8 @@ namespace DynamicPatcher
                     }
                 }
             }
+
+            assemblies.ForEach((tuple) => RefreshAssembly(tuple.Item1, tuple.Item2));
         }
 
         void RefreshAssembly(string path, Assembly assembly)
