@@ -22,12 +22,6 @@ namespace Scripts
         static ColorStruct outerColor = new ColorStruct(19, 19, 810);
         static ColorStruct outerSpread = new ColorStruct(10, 10, 10);
 
-        // [DllImport("Ares0A.dll")]
-        // static public extern DamageAreaResult DamageArea(CoordStruct Coords, int Damage, /*Pointer<TechnoClass>*/IntPtr SourceObject, IntPtr WH,
-        //     bool AffectsTiberium, IntPtr SourceHouse);
-        // [DllImport("Ares0A.dll")]
-        // static public extern void FlashbangWarheadAt(int Damage, IntPtr WH, CoordStruct coords, bool Force = false, SpotlightFlags CLDisableFlags = SpotlightFlags.None);
-
         int angle;
         int frames;
         double radius;

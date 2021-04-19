@@ -16,6 +16,7 @@ namespace Miscellaneous
 {
     public class DynamicLoadINI
     {
+        #if REALTIME_INI
         static Semaphore semaphore = new Semaphore(0, 1);
         [Hook(HookType.AresHook, Address = 0x48CE9C, Size = 5)]
         static public unsafe UInt32 Synchronize(REGISTERS* R)
@@ -110,5 +111,6 @@ namespace Miscellaneous
 
             return new byte[] { 0 };
         }
+        #endif
     }
 }

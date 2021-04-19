@@ -6,6 +6,9 @@
         "PatcherYRpp.dll",
         "Extension.dll"
     ],
+    "#preprocessor_symbols" : [
+        "REALTIME_INI"
+    ],
     "show_hidden" : false,
     "load_temp_file_in_memory" : false,
     "emit_pdb" : true,
