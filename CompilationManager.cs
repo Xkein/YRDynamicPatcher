@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -21,6 +22,7 @@ namespace DynamicPatcher
         // for undependent file
         CSharpCompilation compilation;
         List<string> references;
+        List<string> preprocessorSymbols;
 
         bool showHidden;
         bool loadTempFileInMemory;
@@ -31,6 +33,7 @@ namespace DynamicPatcher
         PackageManager packageManager;
 
         CSharpCompilationOptions compilationOptions;
+        CSharpParseOptions parseOptions;
 
         Solution solution;
         AdhocWorkspace workspace;
@@ -94,6 +97,7 @@ namespace DynamicPatcher
             }
 
             compilation = CSharpCompilation.Create(null, references: metadataReferences, options: compilationOptions);
+            parseOptions = new CSharpParseOptions(preprocessorSymbols: preprocessorSymbols);
 
             ShowCompilerConfig();
         }
@@ -114,6 +118,8 @@ namespace DynamicPatcher
             {
                 this.references.Add(token.ToString());
             }
+
+            preprocessorSymbols = configs["preprocessor_symbols"]?.Select(token => token.ToString()).ToList();
 
             showHidden = configs["show_hidden"].ToObject<bool>();
             loadTempFileInMemory = configs["load_temp_file_in_memory"].ToObject<bool>();
@@ -223,6 +229,13 @@ namespace DynamicPatcher
             }
             Logger.Log("");
 
+            Logger.Log("PreprocessorSymbols: ");
+            foreach (string preprocessorSymbol in parseOptions.PreprocessorSymbolNames)
+            {
+                Logger.Log(preprocessorSymbol);
+            }
+            Logger.Log("");
+
             Logger.Log("Diagnostic.ShowHidden: " + showHidden);
             Logger.Log("LoadTempFileInMemory: " + loadTempFileInMemory);
             Logger.Log("EmitPDB: " + emitPDB);
@@ -305,7 +318,7 @@ namespace DynamicPatcher
                 string outputPath = GetOutputPath(Path.ChangeExtension(path, "tmp"));
 #if DEVMODE
                 SourceText source = SourceText.From(file);
-                SyntaxTree tree = CSharpSyntaxTree.ParseText(source);
+                SyntaxTree tree = CSharpSyntaxTree.ParseText(source, options: parseOptions, path);
 
                 string fileName = Path.GetFileNameWithoutExtension(path);
                 Compilation compiler = compilation.AddSyntaxTrees(tree).WithAssemblyName(fileName);
