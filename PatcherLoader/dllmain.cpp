@@ -195,7 +195,7 @@ struct alignas(16) hookdecl {
 
 // do action after window created
 #pragma section(".syhks00", read, write)
-__declspec(allocate(".syhks00")) hookdecl _hk__PatcherLoader_Action = { 0x777DC2, 0x6, "PatcherLoader_Action" };
+__declspec(allocate(".syhks00")) hookdecl _hk__PatcherLoader_Action = { 0x6BDA21, 0x6, "PatcherLoader_Action" };
 
 
 typedef DWORD REGISTERS;
