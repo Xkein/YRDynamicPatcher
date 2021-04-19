@@ -64,16 +64,16 @@ namespace DynamicPatcher
                 if(buffer[i] == ASM.Jmp[0])
                 {
                     int offset = 0;
-                    MemoryHelper.Read(checkAddress + i, ref offset);
+                    MemoryHelper.Read(checkAddress + i + 1, ref offset);
 
                     JumpStruct jmp = new JumpStruct(checkAddress + i, 0) { Offset = offset };
                     if (jmp.From != targetAddress)
                     {
-                        Logger.LogWarning("{0} destroy 'JMP 0x{1:X}' at 0x{2:X}.", info.Member.Name, jmp.Offset, jmp.From);
+                        Logger.LogWarning("{0} destroy 'JMP 0x{1:X}' at 0x{2:X}.", info.Member.Name, jmp.To, jmp.From);
                     }
                     else if (jmp.To < 0x400000 || jmp.To > 0x7F0000)
                     {
-                        Logger.LogWarning("{0} overwrite 'JMP 0x{1:X}', which may jump to other module.", info.Member.Name, jmp.Offset);
+                        Logger.LogWarning("{0} overwrite 'JMP 0x{1:X}', which may jump to other module.", info.Member.Name, jmp.To);
                     }
                 }
             }
