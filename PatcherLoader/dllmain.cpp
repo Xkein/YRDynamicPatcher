@@ -153,6 +153,7 @@ void ActiveByCOM2() {
     //CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
     IPatcherPtr ptr;
     ptr.CreateInstance(CLSID_Program);
+    ptr->Activate();
     //CoUninitialize();
 }
 
@@ -196,21 +197,37 @@ struct alignas(16) hookdecl {
 // do action after window created
 #pragma section(".syhks00", read, write)
 __declspec(allocate(".syhks00")) hookdecl _hk__PatcherLoader_Action = { 0x6BDA21, 0x6, "PatcherLoader_Action" };
-
+//__declspec(allocate(".syhks00")) hookdecl _hk__PatcherLoader_WaitAction = { 0x48CCC3, 0x5, "PatcherLoader_WaitAction" };
 
 typedef DWORD REGISTERS;
+
+//#include <mutex>
+//#include <future>
+//std::mutex action_mutex;
+
 extern "C" __declspec(dllexport) DWORD __cdecl PatcherLoader_Action(REGISTERS * R)
 {
-    /*std::thread([]()
+   /* std::promise<void> p;
+    std::future f = p.get_future();
+    std::thread([&]()
         {
-            std::this_thread::sleep_for(std::chrono::seconds(2));
+            p.set_value();
+            std::lock_guard guard(action_mutex);
             Action();
         }
-    ).detach();*/
+    ).detach();
+
+    f.wait();*/
     Action();
 
     return 0;
 }
+
+//extern "C" __declspec(dllexport) DWORD __cdecl PatcherLoader_WaitAction(REGISTERS * R)
+//{
+//    std::lock_guard guard(action_mutex);
+//    return 0;
+//}
 
 //Handshake definitions
 struct SyringeHandshakeInfo

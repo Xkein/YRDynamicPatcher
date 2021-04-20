@@ -15,6 +15,9 @@ namespace DynamicPatcher
     [ComVisible(true), Guid("531A1F37-EA8F-4E60-975E-11D61EE68702")]
     public interface IPatcher
     {
+        /// <summary>Activate Dynamic Patcher.</summary>
+        [DispId(1)]
+        void Activate();
     }
 
     /// <summary>The class to activate DynamicPatcher</summary>
@@ -28,11 +31,6 @@ namespace DynamicPatcher
 
         static Program()
         {
-            DllMain();
-        }
-
-        private static void DllMain()
-        {
             string workDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DynamicPatcher");
             librariesDirectory = Path.Combine(workDir, "Libraries");
             AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
@@ -40,8 +38,13 @@ namespace DynamicPatcher
 
             Patcher = new Patcher();
             Patcher.Init(workDir);
+        }
+
+        /// <summary>Activate Dynamic Patcher.</summary>
+        public void Activate()
+        {
             Task task = Patcher.Start();
-            task.Wait(/*TimeSpan.FromSeconds(1.114514)*/);
+            task.Wait();
         }
 
         private static void CurrentDomain_AssemblyLoad(object sender, AssemblyLoadEventArgs args)
@@ -90,14 +93,6 @@ namespace DynamicPatcher
             {
                 Assembly.LoadFile(file.FullName);
             }
-        }
-
-        /// <summary>Init the class Program and invoke ctor.</summary>
-        static public void Activate() { }
-        /// <summary>Init the class Program and invoke ctor.</summary>
-        static public int ActivateFromCLR(string _)
-        {
-            return 1919810;
         }
     }
 }

@@ -354,14 +354,7 @@ namespace DynamicPatcher
                     string pdbPath = Path.ChangeExtension(outputPath, "pdb");
                     var result = compiler.Emit(outputPath, pdbPath: emitPDB ? pdbPath : null);
 
-                    // unknown blocking reason
-                    Task task = Task.Run(() => ShowDiagnostics(result.Diagnostics));
-                    if (task.Wait(TimeSpan.FromSeconds(1)) == false)
-                    {
-                        Logger.LogWarning("ShowDiagnostics is blocked from unknown reason, check it from the text below.");
-                    }
-
-                    //ShowDiagnostics(result.Diagnostics);
+                    ShowDiagnostics(result.Diagnostics);
 
                     if (result.Success == false)
                     {
