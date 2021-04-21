@@ -43,7 +43,7 @@ namespace DynamicPatcher
         /// <summary>Occurs when DynamicPatcher.Patcher.RefreshAssembly.</summary>
         public event AssemblyRefreshEventHandler AssemblyRefresh;
 
-        HookManager hookManager = new HookManager();
+        HookManager hookManager;
         CodeWatcher codeWatcher;
 
         internal Patcher()
@@ -137,6 +137,7 @@ namespace DynamicPatcher
                 }
 
                 CompilationManager = new CompilationManager(workDir);
+                hookManager = new HookManager();
 
                 codeWatcher = new CodeWatcher(workDir);
                 codeWatcher.FirstAction += FirstCompile;
