@@ -64,10 +64,10 @@ namespace Scripts
                 Pointer<SuperClass> pSuper = pOwner.Ref.FindSuperWeapon(pSWType);
 
                 CellStruct targetCell = MapClass.Coord2Cell(pTarget.Ref.GetCoords());
-                //Logger.Log("FireSuperWeapon({2}):0x({3:X}) -> ({0}, {1})", targetCell.X, targetCell.Y, pSWType.Ref.Base.GetID(), (int)pSuper);
-                pSuper.Ref.IsCharged = 1;
+                //Logger.Log("FireSuperWeapon({2}):0x({3:X}) -> ({0}, {1})", targetCell.X, targetCell.Y, pSWType.Ref.Base.ID, (int)pSuper);
+                pSuper.Ref.IsCharged = true;
                 pSuper.Ref.Launch(targetCell, true);
-                pSuper.Ref.IsCharged = 0;
+                pSuper.Ref.IsCharged = false;
             }
         }
     }

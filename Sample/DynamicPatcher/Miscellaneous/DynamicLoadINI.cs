@@ -16,7 +16,7 @@ namespace Miscellaneous
 {
     public class DynamicLoadINI
     {
-        #if REALTIME_INI
+#if REALTIME_INI
         static Semaphore semaphore = new Semaphore(0, 1);
         [Hook(HookType.AresHook, Address = 0x48CE9C, Size = 5)]
         static public unsafe UInt32 Synchronize(REGISTERS* R)
@@ -26,14 +26,56 @@ namespace Miscellaneous
             return 0;
         }
 
+        static string FindMainINI(string name)
+        {
+            Func<Pointer<CCINIClass>, bool> IsMainINI = (Pointer<CCINIClass> pINI) => 
+            {
+	            string section = "#include";
+	            int length = pINI.Ref.GetKeyCount(section);
+                INIReader reader = new INIReader(pINI);
+                for (int i = 0; i < length; i++)
+                {
+		            string key = pINI.Ref.GetKeyName(section, i);
+                    string sub_name = null;
+                    if (reader.ReadNormal(section, key, ref sub_name))
+                    {
+                        //Logger.Log("sub_name {0}", sub_name);
+                        if (string.Compare(sub_name, name, true) == 0)
+                        {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            };
+
+            Dictionary<string, Pointer<CCINIClass>> inis = new() {
+                { "Rulesmd.ini", CCINIClass.INI_Rules },
+                { "Artmd.ini", CCINIClass.INI_Art },
+                { "AImd.ini", CCINIClass.INI_AI }
+            };
+            
+            foreach (var ini in inis)
+            {
+                if (string.Compare(ini.Key, name, true) == 0 || IsMainINI(ini.Value))
+                {
+                    return ini.Key;
+                }
+            }
+
+            return name;
+        }
+
         static CodeWatcher iniWatcher;
 
         [Hook(HookType.WriteBytesHook, Address = 0x7E03E8, Size = 5)]
         static public byte[] Watch()
         {
             iniWatcher = new CodeWatcher(AppDomain.CurrentDomain.BaseDirectory, "*.INI");
-            Logger.LogWarning("watching INI files at {0}", AppDomain.CurrentDomain.BaseDirectory);
-            Logger.LogWarning("remove the this hook if unneed.");
+            iniWatcher.FirstAction = (string path) => {
+                Logger.LogWarning("watching INI files at {0}", path);
+                Logger.LogWarning("remove preprocessor_symbols->REALTIME_INI if unneed.");
+            };
             iniWatcher.StartWatchPath();
 
             iniWatcher.OnCodeChanged += (object sender, FileSystemEventArgs e) =>
@@ -44,27 +86,37 @@ namespace Miscellaneous
                 {
                     return;
                 }
-
+ 
                 Logger.Log("");
+                Logger.LogWarning("experimental feature REALTIME_INI is working.");
                 Logger.Log("detected file {0}: {1}", e.ChangeType, path);
-                // wait for editor releasing
-                var time = TimeSpan.FromSeconds(1.0);
-                Logger.Log("sleep: {0}s", time.TotalSeconds);
-                Thread.Sleep(time);
+                Thread.Sleep(TimeSpan.FromSeconds(1.0));
 
-                Pointer<CCINIClass> pINI = IntPtr.Zero;
-                Pointer<CCFileClass> pFile = IntPtr.Zero;
                 try
                 {
-                    pINI = YRMemory.Create<CCINIClass>();
-                    pFile = YRMemory.Create<CCFileClass>(path);
-                    pINI.Ref.ReadCCFile(pFile);
+                    Pointer<CCINIClass> pINI = IntPtr.Zero;
+                    Pointer<CCFileClass> pFile = IntPtr.Zero;
+                    Pointer<CCFileClass> pMap = IntPtr.Zero;
 
-                    ref var typeArray = ref AbstractTypeClass.ABSTRACTTYPE_ARRAY.Array;
+                    pINI = YRMemory.Create<CCINIClass>();
+
+                    string ini_name = FindMainINI(Path.GetFileName(path));
+                    pFile = YRMemory.Create<CCFileClass>(ini_name);
+                    Logger.Log("reloading {0}.", ini_name);
+                    pINI.Ref.ReadCCFile(pFile);
+                    YRMemory.Delete(pFile);
+                    
+                    string map_name = ScenarioClass.Instance.GetFileName();
+                    pMap = YRMemory.Create<CCFileClass>(map_name);
+                    Logger.Log("reloading {0}.", map_name);
+                    pINI.Ref.ReadCCFile(pMap);
+                    YRMemory.Delete(pMap);
 
                     Logger.Log("waiting for the end of game frame.");
                     semaphore.WaitOne();
-                    Logger.Log("reloading.");
+                    Logger.Log("reloading Types.");
+
+                    ref var typeArray = ref AbstractTypeClass.ABSTRACTTYPE_ARRAY.Array;
                     for (int i = 0; i < typeArray.Count; i++)
                     {
                         var pItem = typeArray[i].Convert<AbstractTypeClass>();
@@ -89,11 +141,13 @@ namespace Miscellaneous
                             case AbstractType.Tiberium:
                             case AbstractType.WeaponType:
                             case AbstractType.WarheadType:
-                                //Logger.Log("{0} is reloading.", pItem.Ref.GetID());
+                                //Logger.Log("{0} is reloading.", pItem.Ref.ID);
                                 pItem.Ref.LoadFromINI(pINI);
                                 break;
                         }
                     }
+
+                    YRMemory.Delete(pINI);
                 }
                 catch (Exception ex)
                 {
@@ -101,16 +155,15 @@ namespace Miscellaneous
                 }
                 finally
                 {
-                    YRMemory.Delete(pFile);
-                    YRMemory.Delete(pINI);
                     semaphore.Release();
                 }
 
                 Logger.Log("{0} reloaded.", path);
+                Logger.LogWarning("new changes are only be applied to current game.");
             };
 
             return new byte[] { 0 };
         }
-        #endif
+#endif
     }
 }
