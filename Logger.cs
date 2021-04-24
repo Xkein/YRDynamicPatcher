@@ -60,15 +60,19 @@ namespace DynamicPatcher
             }
         }
 
+        private static object color_locker = new object();
         /// <summary>Write string to logger with color.</summary>
         public static void LogWithColor(string str, ConsoleColor color)
         {
-            ConsoleColor originColor = Console.ForegroundColor;
-            Console.ForegroundColor = color;
+            lock (color_locker)
+            {
+                ConsoleColor originColor = Console.ForegroundColor;
+                Console.ForegroundColor = color;
 
-            Logger.Log(str);
+                Logger.Log(str);
 
-            Console.ForegroundColor = originColor;
+                Console.ForegroundColor = originColor;
+            }
         }
 
         /// <summary>Write format string to logger with error state.</summary>
