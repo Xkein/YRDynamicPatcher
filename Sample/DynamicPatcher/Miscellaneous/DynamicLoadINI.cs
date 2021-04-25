@@ -106,7 +106,7 @@ namespace Miscellaneous
                     pINI.Ref.ReadCCFile(pFile);
                     YRMemory.Delete(pFile);
                     
-                    string map_name = ScenarioClass.Instance.GetFileName();
+                    string map_name = ScenarioClass.Instance.FileName;
                     pMap = YRMemory.Create<CCFileClass>(map_name);
                     Logger.Log("reloading {0}.", map_name);
                     pINI.Ref.ReadCCFile(pMap);

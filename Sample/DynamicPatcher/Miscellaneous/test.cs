@@ -19,8 +19,8 @@ namespace Test
             ref HouseClass rHouse = ref rTechno.Owner.Ref;
             unsafe
             {
-                string ID = rType.Base.Base.GetUIName();
-                string HouseID = rHouse.Type.Ref.Base.GetUIName();
+                string ID = rType.Base.Base.UIName;
+                string HouseID = rHouse.Type.Ref.Base.UIName;
                 Logger.Log("{0}({1}) fired", ID, HouseID);
             };
             int rof = 1919810;
