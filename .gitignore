@@ -343,3 +343,4 @@ healthchecksdb
 /Sample/PatcherLoader.dll
 /Sample/DynamicPatcherLICENSE.MD
 /Sample/DynamicPatcher.dll
+/Sample/DynamicPatcher_RELEASE.dll

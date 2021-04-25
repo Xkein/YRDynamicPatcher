@@ -4,10 +4,6 @@ name: release build
 
 # Controls when the action will run. 
 on:
-  # Triggers the workflow on push or pull request events but only for the master branch
-  push:
-    branches: [ master ]
-
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -47,15 +43,17 @@ jobs:
           msbuild -m -p:Configuration=Release ${{env.PROPERTY_GITHUB}} ${{env.SOLUTION_PATH}}
           
       - name: Copy compiled files
+        working-directory: ${{env.GITHUB_WORKSPACE}}
+        env:
+          SAMPLE_DIRECTORY: ${{env.GITHUB_WORKSPACE}}/Sample  
         if: ${{success()}}
-        working-directory: ${{env.GITHUB_WORKSPACE}}/Sample
-        run: make-files.bat
+        run: ./${{env.SAMPLE_DIRECTORY}}/make-files.bat
         
       - name: Upload Artifact
         if: ${{success()}}
         uses: actions/upload-artifact@v2
         env:
-          SAMPLE_DIRECTORY: ${{env.GITHUB_WORKSPACE}}/Sample  
+          SAMPLE_DIRECTORY: ./${{env.GITHUB_WORKSPACE}}/Sample
         with:
           name: release-${{github.sha}}
           path: |
@@ -63,4 +61,5 @@ jobs:
             ${{env.SAMPLE_DIRECTORY}}/PatcherLoader.dll
             ${{env.SAMPLE_DIRECTORY}}/DynamicPatcher.dll
             ${{env.SAMPLE_DIRECTORY}}/DynamicPatcher_RELEASE.dll
+            ${{env.SAMPLE_DIRECTORY}}/DynamicPatcherLICENSE.MD
             
