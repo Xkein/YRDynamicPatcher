@@ -83,6 +83,7 @@ namespace DynamicPatcher
             }
 
             OnCodeChanged.Invoke(sender, e);
+            lastModifications[path] = stopwatch.Elapsed;
         }
 
         private bool IsFileChanged(string path)
