@@ -166,6 +166,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CLR.cpp" />
+    <ClCompile Include="COM.cpp" />
     <ClCompile Include="dllmain.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -174,6 +176,8 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CLR.h" />
+    <ClInclude Include="COM.h" />
     <ClInclude Include="Helpers.h" />
     <ClInclude Include="Registration.h" />
   </ItemGroup>
