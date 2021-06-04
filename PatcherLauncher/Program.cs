@@ -49,7 +49,9 @@ namespace PatcherLauncher
 
         public static void Main(string[] args)
         {
+            //MessageBox.Show("Attach Me", "Patcher Launcher", MessageBoxButtons.OK, MessageBoxIcon.Error);
             Process yrProcess;
+            Console.WriteLine("finding target process...");
             while (FindYR(out yrProcess) == false)
             {
                 Thread.Sleep(100);
@@ -57,13 +59,25 @@ namespace PatcherLauncher
 
             try
             {
-                Registration.Register(DynamicPatcher);
+                //Registration.Register(DynamicPatcher);
 
                 Remote remote = new Remote(yrProcess);
                 remote.LoadLibrary(PatcherLoader);
+                Console.WriteLine();
+
+                Process curProc = Process.GetCurrentProcess();
+                //remote.Invoke("kernel32", "AttachConsole", (IntPtr)curProc.Id);
+                remote.Invoke("kernel32", "AllocConsole", IntPtr.Zero);
+                Console.WriteLine();
+
+                remote.InvokeAsync(PatcherLoader, "CLR_Init", IntPtr.Zero);
+                Console.WriteLine();
+
+                remote.InvokeAsync(PatcherLoader, "CLR_Load", IntPtr.Zero);
+                Console.WriteLine();
 
                 yrProcess.WaitForExit();
-                Registration.Unregister(DynamicPatcher);
+                //Registration.Unregister(DynamicPatcher);
             }
             catch (Exception e)
             {

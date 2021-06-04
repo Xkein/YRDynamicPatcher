@@ -10,10 +10,12 @@ namespace PatcherLauncher
 {
     class Registration
     {
+        const string RegAsm = @"C:\Windows\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe";
+
         public static bool Register(string dllPath)
         {
             Process regasm = new Process();
-            regasm.StartInfo.FileName = @"C:\Windows\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe";
+            regasm.StartInfo.FileName = RegAsm;
             regasm.StartInfo.Arguments = dllPath;
             regasm.StartInfo.UseShellExecute = false;
             regasm.StartInfo.CreateNoWindow = false;
@@ -27,7 +29,7 @@ namespace PatcherLauncher
         public static bool Unregister(string dllPath)
         {
             Process regasm = new Process();
-            regasm.StartInfo.FileName = @"C:\Windows\Microsoft.NET\Framework\v4.0.30319\RegAsm.exe";
+            regasm.StartInfo.FileName = RegAsm;
             regasm.StartInfo.Arguments = "/u " + dllPath;
             regasm.StartInfo.UseShellExecute = false;
             regasm.StartInfo.CreateNoWindow = false;
