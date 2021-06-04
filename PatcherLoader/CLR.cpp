@@ -50,7 +50,6 @@ ICorRuntimeHost* pCorRuntimeHost = NULL;
 
 bool CLR::Init()
 {
-    MessageBoxW(NULL, L"attach", L"CLR::Init()", MB_OK);
     CHECK(CLRCreateInstance(CLSID_CLRMetaHost, IID_PPV_ARGS(&pMetaHost)));
     CHECK(CLRCreateInstance(CLSID_CLRMetaHostPolicy, IID_PPV_ARGS(&pMetaHostPolicy)));
     CHECK(CLRCreateInstance(CLSID_CLRDebugging, IID_PPV_ARGS(&pCLRDebugging)));
@@ -102,3 +101,36 @@ bool CLR::Load()
 }
 
 #undef CHECK
+
+enum class CLRState
+{
+    UnInitialized, Initialized, Loaded
+};
+
+#include <atomic>
+std::atomic<CLRState> clr_state = CLRState::UnInitialized;
+
+extern "C" __declspec(dllexport) bool __cdecl CLR_Init()
+{
+    if (clr_state.load() != CLRState::UnInitialized) {
+        return false;
+    }
+
+    bool ret = CLR::Init();
+    clr_state.store(CLRState::Initialized);
+    return ret;
+}
+
+extern "C" __declspec(dllexport) DWORD __cdecl CLR_Load()
+{
+    if (clr_state.load() == CLRState::Loaded) {
+        return false;
+    }
+
+    while (clr_state.load() == CLRState::UnInitialized);
+    bool ret = CLR::Load();
+    clr_state.store(CLRState::Loaded);
+    return ret;
+}
+
+
