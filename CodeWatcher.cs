@@ -43,9 +43,9 @@ namespace DynamicPatcher
 
             Task.Run(() =>
             {
-                Logger.Log("{0}: waiting for first action to complete.", Path.Combine(workDir, filter));
+                Logger.Log("{0}: waiting for first action to complete.", Path.Combine(workDir, "**", filter));
                 firstTask.Wait();
-                Logger.Log("{0}: first action complete!", Path.Combine(workDir, filter));
+                Logger.Log("{0}: first action complete!", Path.Combine(workDir, "**", filter));
 
                 WatchPath();
             });
