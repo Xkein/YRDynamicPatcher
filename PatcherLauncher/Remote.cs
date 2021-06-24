@@ -94,6 +94,7 @@ namespace PatcherLauncher
         {
             RemoteProcess = remoteProcess;
             HProcess = IntPtr.Zero;
+            HInvokeMethod = IntPtr.Zero;
         }
 
         private bool OpenRemoteProcess()
@@ -214,10 +215,13 @@ namespace PatcherLauncher
             return false;
         }
 
+        IntPtr HInvokeMethod { get; set; }
         private bool RemoteAllocInvokeMethod(out IntPtr pInvokeMethod)
         {
-            pInvokeMethod = IntPtr.Zero;
-            byte[] buffer = {
+            if (HInvokeMethod == IntPtr.Zero)
+            {
+                HInvokeMethod = IntPtr.Zero;
+                byte[] buffer = {
                         0x55, // PUSH EBP
                         0x8B, 0xEC, // MOV EBP, ESP
                         0x8B, 0x45, 0x08, // MOV EAX, [EBP + 8]
@@ -239,22 +243,23 @@ namespace PatcherLauncher
                         0xC3 // RET
                      };
 
-            IntPtr pGetModuleHandle = GetProcAddress(GetModuleHandle("kernel32.dll"), "GetModuleHandleA");
-            IntPtr pGetProcAddress = GetProcAddress(GetModuleHandle("kernel32.dll"), "GetProcAddress");
+                IntPtr pGetModuleHandle = GetProcAddress(GetModuleHandle("kernel32.dll"), "GetModuleHandleA");
+                IntPtr pGetProcAddress = GetProcAddress(GetModuleHandle("kernel32.dll"), "GetProcAddress");
 
-            BitConverter.GetBytes((uint)pGetModuleHandle).CopyTo(buffer, 10);
-            BitConverter.GetBytes((uint)pGetProcAddress).CopyTo(buffer, 26);
+                BitConverter.GetBytes((uint)pGetModuleHandle).CopyTo(buffer, 10);
+                BitConverter.GetBytes((uint)pGetProcAddress).CopyTo(buffer, 26);
 
-            if (RemoteAlloc((uint)buffer.Length, out IntPtr pMemory))
-            {
-                if(RemoteWrite(pMemory, buffer))
+                if (RemoteAlloc((uint)buffer.Length, out IntPtr pMemory))
                 {
-                    pInvokeMethod = pMemory;
-                    return true;
+                    if (RemoteWrite(pMemory, buffer))
+                    {
+                        HInvokeMethod = pMemory;
+                    }
                 }
             }
 
-            return false;
+            pInvokeMethod = HInvokeMethod;
+            return pInvokeMethod != IntPtr.Zero;
         }
 
         private bool RemoteAlloc(uint length, out IntPtr pMemory)
