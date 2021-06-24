@@ -14,34 +14,34 @@ namespace DynamicPatcher
 {
     class Helpers
     {
-        private static IntPtr yrHandle = IntPtr.Zero;
+        private static IntPtr processHandle = IntPtr.Zero;
 
-        static IntPtr YRHandle {
+        static IntPtr ProcessHandle {
             get
             {
-                if(yrHandle == IntPtr.Zero)
+                if(processHandle == IntPtr.Zero)
                 {
-                    yrHandle = FindYRProcessHandle();
+                    processHandle = FindProcessHandle();
                 }
-                return yrHandle;
+                return processHandle;
             }
-            set => yrHandle = value;
+            set => processHandle = value;
         }
-        static private IntPtr FindYRProcessHandle()
+        static private IntPtr FindProcessHandle()
         {
 
             Process[] processes = Process.GetProcesses();
             foreach (var process in processes)
             {
-                if (process.ProcessName.Contains("gamemd") && process.Id == Process.GetCurrentProcess().Id)
+                if (process.Id == Process.GetCurrentProcess().Id)
                 {
                     var targetProcess = Process.GetCurrentProcess();
                     try
                     {
-                        Logger.Log("find YR process: {0} ({1})", targetProcess.MainWindowTitle, targetProcess.Id);
+                        Logger.Log("find process: {0} ({1})", targetProcess.MainWindowTitle, targetProcess.Id);
                         targetProcess.EnableRaisingEvents = true;
                         targetProcess.Exited += (object sender, EventArgs e) => {
-                            YRHandle = IntPtr.Zero;
+                            ProcessHandle = IntPtr.Zero;
                             Logger.Log("{0} ({1}) exited.", targetProcess.MainWindowTitle, targetProcess.Id);
                             };
                         return targetProcess.Handle;
@@ -54,12 +54,12 @@ namespace DynamicPatcher
                 }
             }
 
-            throw new InvalidOperationException("could not find yr handle");
+            throw new InvalidOperationException("could not find process handle");
         }
 
         static public IntPtr GetProcessHandle()
         {
-            return YRHandle;
+            return ProcessHandle;
         }
 
         public static List<string> AdditionalSearchPath { get; } = new List<string>();
