@@ -64,14 +64,23 @@ namespace DynamicPatcher
         /// <summary>Write string to logger with color.</summary>
         public static void LogWithColor(string str, ConsoleColor color)
         {
+            LogWithColor(str, color, Console.BackgroundColor);
+        }
+
+        /// <summary>Write string to logger with ForegroundColor and BackgroundColor.</summary>
+        public static void LogWithColor(string str, ConsoleColor fgColor, ConsoleColor bgColor)
+        {
             lock (color_locker)
             {
-                ConsoleColor originColor = Console.ForegroundColor;
-                Console.ForegroundColor = color;
+                ConsoleColor originFgColor = Console.ForegroundColor;
+                ConsoleColor originBgColor = Console.BackgroundColor;
+                Console.ForegroundColor = fgColor;
+                Console.BackgroundColor = bgColor;
 
                 Logger.Log(str);
 
-                Console.ForegroundColor = originColor;
+                Console.ForegroundColor = originFgColor;
+                Console.BackgroundColor = originBgColor;
             }
         }
 
