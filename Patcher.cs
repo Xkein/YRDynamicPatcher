@@ -98,6 +98,7 @@ namespace DynamicPatcher
 
             try
             {
+                Logo.ShowLogo();
                 using StreamReader file = File.OpenText(Path.Combine(workDir, "dynamicpatcher.config.json"));
                 using JsonTextReader reader = new JsonTextReader(file);
                 var json = JObject.Load(reader);
