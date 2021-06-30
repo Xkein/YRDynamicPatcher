@@ -68,7 +68,9 @@ namespace ExtensionHooks
 
             return 0;
         }
-        [Hook(HookType.AresHook, Address = 0x6F6AC0, Size = 5)]
+        // avoid hook conflict with phobos feature -- shield
+        //[Hook(HookType.AresHook, Address = 0x6F6AC0, Size = 5)]
+        [Hook(HookType.AresHook, Address = 0x6F6AC4, Size = 5)]
         static public unsafe UInt32 TechnoClass_Remove_Script(REGISTERS* R)
         {
             Pointer<TechnoClass> pTechno = (IntPtr)R->ECX;
