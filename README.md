@@ -40,6 +40,18 @@ Examples
 
 ![runtime_ini_edit](https://github.com/Xkein/Images/blob/master/DynamicPatcher/runtime_ini_edit.gif?raw=true)
 
+Quick Use
+--------
+1. Download newest DynamicPatcher from [Releases (Recommended)](https://github.com/Xkein/YRDynamicPatcher/releases) or [Actions](https://github.com/Xkein/YRDynamicPatcher/actions).
+2. Unzip to game folder.
+3. Open config file `DynamicPatcher\compiler.config.json` and set `hide_console` to false, in order to check if DynamicPatcher work.
+   - You can try something mentioned in Release.
+4. Run game by Ares's `Syringe`.
+
+If DynamicPatcher not work, check the below:
+- Runtime VC++ 2015 - 2019 x86 and .NET Framework 4.8
+- Run as Administrator
+
 Usage
 --------
 Put `PatcherLoader.dll` and `DynamicPatcher.dll` on your YR directory and launch Syringe targeting your YR executable (usually `gamemd.exe`).
@@ -59,6 +71,41 @@ The patcher will search exist files at first or detected every file changes late
 **Patcher will check the file time between code files and compiled assemblies and dependencies to skip unnecessary compile.
 
 ** If you meet some stranger problem, try deleting the directory `DynamicPatcher\Build`.
+
+Configuration
+--------
+the file `DynamicPatcher\dynamicpatcher.config.json` explanation:
+
+`try_catch_callable` : try-catch invoke a hook function.
+
+`force_gc_collect` : forces garbage collection per 10s.
+
+`hide_console` : hide the console during start-up.
+
+
+the file `DynamicPatcher\compiler.config.json` explanation:
+
+`references` : the assemblies it referenced.
+
+`preprocessor_symbols` : define preprocessor symbols.
+
+`show_hidden` : show hidden message of compiler
+
+`load_temp_file_in_memory` : load temp file into memory. set false if want to Save & Load. set true if want to modify code dynamically.
+
+`emit_pdb` : emit pdb message
+
+`force_compile` : force compile all files at start-up.
+
+`pack_assembly` : pack/unpack builded assemblies for release.
+
+
+Release Mode
+--------
+- Compile or take the DynamicPatcher without DEVMODE.
+- Set `pack_assembly` to true (`DynamicPatcher\Packages` needed).
+- Remove the directory `DynamicPatcher\Build`
+
 
 Hook
 --------
@@ -116,42 +163,6 @@ namespace PatcherSample
   - Field
   - Property
 
-
-Configuration
---------
-the file `DynamicPatcher\dynamicpatcher.config.json` explanation:
-
-`try_catch_callable` : try-catch invoke a hook function.
-
-`force_gc_collect` : forces garbage collection per 10s.
-
-`hide_console` : hide the console during start-up.
-
-
-the file `DynamicPatcher\compiler.config.json` explanation:
-
-`references` : the assemblies it referenced.
-
-`preprocessor_symbols` : define preprocessor symbols.
-
-`show_hidden` : show hidden message of compiler
-
-`load_temp_file_in_memory` : load temp file into memory. set false if want to Save & Load. set true if want to modify code dynamically.
-
-`emit_pdb` : emit pdb message
-
-`force_compile` : force compile all files at start-up.
-
-`pack_assembly` : pack/unpack builded assemblies for release.
-
-
-Release Mode
---------
-- Compile or take the DynamicPatcher without DEVMODE.
-- Set `pack_assembly` to true (`DynamicPatcher\Packages` needed).
-- Remove the directory `DynamicPatcher\Build`
-
-
 [DynamicPatcher based Extensions](https://github.com/Xkein/PatcherExtension)
 --------
 The extension is divided into 2 parts —— dynamic and static.
@@ -162,7 +173,7 @@ Dynamic means that you can edit when game running.
   1. Hooks
   2. ...
    
-- Static
+- Static (Projects included in solution file named by '.sln')
   1. APIs (Many helpers)
   2. Structure Definitions
   3. Managers
