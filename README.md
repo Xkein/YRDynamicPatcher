@@ -28,15 +28,17 @@ We can use it to do something below:
 Examples
 --------
 
-![dynamic_change](Sample/dynamic_change.gif)
+![dynamic_change](https://github.com/Xkein/Images/blob/master/DynamicPatcher/dynamic_change.gif?raw=true)
 
-![recovery_hook](Sample/recovery_hook.gif)
+![recovery_hook](https://github.com/Xkein/Images/blob/master/DynamicPatcher/recovery_hook.gif?raw=true)
 
-![try-catch](Sample/try-catch.gif)
+![try-catch](https://github.com/Xkein/Images/blob/master/DynamicPatcher/try-catch.gif?raw=true)
 
-![fire_update_script](Sample/fire_update_script.gif)
+![fire_update_script](https://github.com/Xkein/Images/blob/master/DynamicPatcher/fire_update_script.gif?raw=true)
 
-![event_decorator](Sample/event_decorator.gif)
+![event_decorator](https://github.com/Xkein/Images/blob/master/DynamicPatcher/event_decorator.gif?raw=true)
+
+![runtime_ini_edit](https://github.com/Xkein/Images/blob/master/DynamicPatcher/runtime_ini_edit.gif?raw=true)
 
 Usage
 --------
