@@ -16,13 +16,23 @@ namespace Miscellaneous
 {
     public class DynamicLoadINI
     {
+        static Semaphore semaphore = new Semaphore(0, 1);
+        [Hook(HookType.AresHook, Address = 0x48CE9C, Size = 5)]
+        static public unsafe UInt32 Synchronize(REGISTERS* R)
+        {
+            semaphore.Release();
+            semaphore.WaitOne();
+            return 0;
+        }
+
         static CodeWatcher iniWatcher;
 
         [Hook(HookType.WriteBytesHook, Address = 0x7E03E8, Size = 5)]
         static public byte[] Watch()
         {
             iniWatcher = new CodeWatcher(AppDomain.CurrentDomain.BaseDirectory, "*.INI");
-            Logger.Log("watching INI files at {0}", AppDomain.CurrentDomain.BaseDirectory);
+            Logger.LogWarning("watching INI files at {0}", AppDomain.CurrentDomain.BaseDirectory);
+            Logger.LogWarning("remove the this hook if unneed.");
             iniWatcher.StartWatchPath();
 
             iniWatcher.OnCodeChanged += (object sender, FileSystemEventArgs e) =>
@@ -40,7 +50,6 @@ namespace Miscellaneous
                 var time = TimeSpan.FromSeconds(1.0);
                 Logger.Log("sleep: {0}s", time.TotalSeconds);
                 Thread.Sleep(time);
-                Logger.Log("");
 
                 Pointer<CCINIClass> pINI = IntPtr.Zero;
                 Pointer<CCFileClass> pFile = IntPtr.Zero;
@@ -52,6 +61,9 @@ namespace Miscellaneous
 
                     ref var typeArray = ref AbstractTypeClass.ABSTRACTTYPE_ARRAY.Array;
 
+                    Logger.Log("waiting for the end of game frame.");
+                    semaphore.WaitOne();
+                    Logger.Log("reloading.");
                     for (int i = 0; i < typeArray.Count; i++)
                     {
                         var pItem = typeArray[i].Convert<AbstractTypeClass>();
@@ -76,7 +88,7 @@ namespace Miscellaneous
                             case AbstractType.Tiberium:
                             case AbstractType.WeaponType:
                             case AbstractType.WarheadType:
-                                Logger.Log("{0} is reloading.", pItem.Ref.GetID());
+                                //Logger.Log("{0} is reloading.", pItem.Ref.GetID());
                                 pItem.Ref.LoadFromINI(pINI);
                                 break;
                         }
@@ -90,7 +102,10 @@ namespace Miscellaneous
                 {
                     YRMemory.Delete(pFile);
                     YRMemory.Delete(pINI);
+                    semaphore.Release();
                 }
+
+                Logger.Log("{0} reloaded.", path);
             };
 
             return new byte[] { 0 };
