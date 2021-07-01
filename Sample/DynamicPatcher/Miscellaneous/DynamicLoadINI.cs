@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using DynamicPatcher;
 using PatcherYRpp;
@@ -69,7 +70,7 @@ namespace Miscellaneous
         static CodeWatcher iniWatcher;
 
         [Hook(HookType.WriteBytesHook, Address = 0x7E03E8, Size = 5)]
-        static public byte[] Watch()
+        static public unsafe byte[] Watch()
         {
             iniWatcher = new CodeWatcher(AppDomain.CurrentDomain.BaseDirectory, "*.INI");
             iniWatcher.FirstAction = (string path) => {
@@ -105,46 +106,98 @@ namespace Miscellaneous
                     Logger.Log("reloading {0}.", ini_name);
                     pINI.Ref.ReadCCFile(pFile);
                     YRMemory.Delete(pFile);
-                    
-                    string map_name = ScenarioClass.Instance.FileName;
-                    pMap = YRMemory.Create<CCFileClass>(map_name);
-                    Logger.Log("reloading {0}.", map_name);
-                    pINI.Ref.ReadCCFile(pMap);
-                    YRMemory.Delete(pMap);
 
                     Logger.Log("waiting for the end of game frame.");
                     semaphore.WaitOne();
-                    Logger.Log("reloading Types.");
 
-                    ref var typeArray = ref AbstractTypeClass.ABSTRACTTYPE_ARRAY.Array;
-                    for (int i = 0; i < typeArray.Count; i++)
-                    {
-                        var pItem = typeArray[i].Convert<AbstractTypeClass>();
-                        switch (pItem.Ref.Base.WhatAmI())
+                    Action ReloadRules = () => {
+                        string map_name = ScenarioClass.Instance.FileName;
+                        pMap = YRMemory.Create<CCFileClass>(map_name);
+                        Logger.Log("reloading {0}.", map_name);
+                        pINI.Ref.ReadCCFile(pMap);
+                        YRMemory.Delete(pMap);
+
+                        Logger.Log("reloading Types.");
+                        ref var typeArray = ref AbstractTypeClass.ABSTRACTTYPE_ARRAY.Array;
+                        for (int i = 0; i < typeArray.Count; i++)
                         {
-                            case AbstractType.AircraftType:
-                            case AbstractType.AnimType:
-                            case AbstractType.BuildingType:
-                            case AbstractType.BulletType:
-                            case AbstractType.HouseType:
-                            case AbstractType.InfantryType:
-                            case AbstractType.IsotileType:
-                            case AbstractType.OverlayType:
-                            case AbstractType.ParticleType:
-                            case AbstractType.ParticleSystemType:
-                            case AbstractType.Side:
-                            case AbstractType.SmudgeType:
-                            case AbstractType.SuperWeaponType:
-                            //case AbstractType.TerrainType: // which will get crash
-                            case AbstractType.UnitType:
-                            case AbstractType.VoxelAnimType:
-                            case AbstractType.Tiberium:
-                            case AbstractType.WeaponType:
-                            case AbstractType.WarheadType:
-                                //Logger.Log("{0} is reloading.", pItem.Ref.ID);
-                                pItem.Ref.LoadFromINI(pINI);
-                                break;
+                            var pItem = typeArray[i].Convert<AbstractTypeClass>();
+                            switch (pItem.Ref.Base.WhatAmI())
+                            {
+                                case AbstractType.AircraftType:
+                                case AbstractType.BuildingType:
+                                case AbstractType.BulletType:
+                                case AbstractType.HouseType:
+                                case AbstractType.InfantryType:
+                                case AbstractType.IsotileType:
+                                case AbstractType.OverlayType:
+                                case AbstractType.ParticleType:
+                                case AbstractType.ParticleSystemType:
+                                case AbstractType.Side:
+                                case AbstractType.SmudgeType:
+                                case AbstractType.SuperWeaponType:
+                                //case AbstractType.TerrainType: // which will get crash
+                                case AbstractType.UnitType:
+                                case AbstractType.VoxelAnimType:
+                                case AbstractType.Tiberium:
+                                case AbstractType.WeaponType:
+                                case AbstractType.WarheadType:
+                                    //Logger.Log("{0} is reloading.", pItem.Ref.ID);
+                                    pItem.Ref.LoadFromINI(pINI);
+                                    break;
+                            }
                         }
+                    };
+
+                    Action ReloadArt = () => {
+                        using var memory = new MemoryHandle(Marshal.SizeOf<CCINIClass>());
+                        Logger.Log("storing art data.");
+                        Unsafe.CopyBlock((void*)memory.Memory, (void*)CCINIClass.INI_Art, (uint)memory.Size);
+                        Logger.Log("writing new art data.");
+                        Unsafe.CopyBlock((void*)CCINIClass.INI_Art, (void*)pINI, (uint)memory.Size);
+
+                        Logger.Log("reloading Types.");
+                        ref var typeArray = ref AbstractTypeClass.ABSTRACTTYPE_ARRAY.Array;
+                        for (int i = 0; i < typeArray.Count; i++)
+                        {
+                            var pItem = typeArray[i].Convert<AbstractTypeClass>();
+                            switch (pItem.Ref.Base.WhatAmI())
+                            {
+                                case AbstractType.AnimType:
+                                    pItem.Ref.LoadFromINI(pINI);
+                                    break;
+                                case AbstractType.AircraftType:
+                                case AbstractType.BuildingType:
+                                case AbstractType.BulletType:
+                                case AbstractType.HouseType:
+                                case AbstractType.InfantryType:
+                                case AbstractType.IsotileType:
+                                case AbstractType.OverlayType:
+                                case AbstractType.ParticleType:
+                                case AbstractType.ParticleSystemType:
+                                case AbstractType.Side:
+                                case AbstractType.SmudgeType:
+                                case AbstractType.SuperWeaponType:
+                                case AbstractType.UnitType:
+                                case AbstractType.VoxelAnimType:
+                                case AbstractType.Tiberium:
+                                case AbstractType.WeaponType:
+                                case AbstractType.WarheadType:
+                                    pItem.Ref.LoadFromINI(CCINIClass.INI_Rules);
+                                    break;
+                            }
+                        }
+                        Logger.Log("writing old art data back.");
+                        Unsafe.CopyBlock((void*)CCINIClass.INI_Art, (void*)memory.Memory, (uint)memory.Size);
+                    };
+
+                    if (string.Compare("Artmd.ini", ini_name, true) == 0)
+                    {
+                        ReloadArt();
+                    }
+                    else
+                    {
+                        ReloadRules();
                     }
 
                     YRMemory.Delete(pINI);

@@ -4,7 +4,8 @@
         "System.Core.dll",
         "System.Data.dll",
         "PatcherYRpp.dll",
-        "Extension.dll"
+        "Extension.dll",
+        "System.Runtime.CompilerServices.Unsafe.dll"
     ],
     "#preprocessor_symbols" : [
         "REALTIME_INI"
