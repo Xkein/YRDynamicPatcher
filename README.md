@@ -44,7 +44,7 @@ Quick Use
 --------
 1. Download newest DynamicPatcher from [Releases (Recommended)](https://github.com/Xkein/YRDynamicPatcher/releases) or [Actions](https://github.com/Xkein/YRDynamicPatcher/actions).
 2. Unzip to game folder.
-3. Open config file `DynamicPatcher\compiler.config.json` and set `hide_console` to false, in order to check if DynamicPatcher work.
+3. Open config file `DynamicPatcher\dynamicpatcher.config.json` and set `hide_console` to false, in order to check if DynamicPatcher work.
    - You can try something mentioned in Release.
 4. Run game by Ares's `Syringe`.
 
@@ -189,7 +189,7 @@ Sample has some simple feature below:
 
 [YRPP](https://github.com/Xkein/PatcherYRpp)
 --------
-YRPP is a dynamic part of Extension.
+YRPP is a static part of Extension.
 
 It give some game structure and helpers in C# style.
 
