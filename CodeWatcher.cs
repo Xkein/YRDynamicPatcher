@@ -64,10 +64,10 @@ namespace DynamicPatcher
 
             var watcher = new FileSystemWatcher(workDir, filter);
 
-            watcher.Created += new FileSystemEventHandler(OnFileChanged);
-            watcher.Changed += new FileSystemEventHandler(OnFileChanged);
-            watcher.Deleted += new FileSystemEventHandler(OnFileChanged);
-            //watcher.Renamed += new RenamedEventHandler(OnRenamed);
+            watcher.Created += OnFileChanged;
+            watcher.Changed += OnFileChanged;
+            watcher.Deleted += OnFileChanged;
+            watcher.Renamed += OnFileChanged;
             watcher.IncludeSubdirectories = true;
             watcher.EnableRaisingEvents = true;
 

@@ -155,18 +155,19 @@ namespace DynamicPatcher
             return codeWatcher.StartWatchPath();
         }
 
-        private Assembly TryCompile(string path)
+        private bool TryCompile(string path, out Assembly assembly)
         {
+            assembly = null;
             try
             {
-                return CompilationManager.Compile(path);
+                assembly = CompilationManager.Compile(path);
             }
             catch (Exception e)
             {
                 Logger.LogError("compile error!");
                 Logger.PrintException(e);
-                return null;
             }
+            return assembly != null;
         }
 
         private void OnCodeChanged(object sender, FileSystemEventArgs e)
@@ -182,6 +183,16 @@ namespace DynamicPatcher
                 case WatcherChangeTypes.Created:
                     break;
                 case WatcherChangeTypes.Deleted:
+                    Logger.Log("remove assembly '{0}' hooks.", FileAssembly[path].FullName);
+                    hookManager.RemoveAssemblyHook(FileAssembly[path]);
+                    return;
+                case WatcherChangeTypes.Renamed:
+                    string oldPath = (e as RenamedEventArgs).OldFullPath;
+                    if (FileAssembly.ContainsKey(oldPath))
+                    {
+                        Logger.Log("remove assembly '{0}' hooks.", FileAssembly[oldPath].FullName);
+                        hookManager.RemoveAssemblyHook(FileAssembly[oldPath]);
+                    }
                     break;
             }
 
@@ -191,9 +202,8 @@ namespace DynamicPatcher
             Thread.Sleep(time);
 
             Logger.Log("");
-            var assembly = TryCompile(path);
 
-            if (assembly != null)
+            if (TryCompile(path, out var assembly))
             {
                 RefreshAssembly(path, assembly);
             }
@@ -219,9 +229,7 @@ namespace DynamicPatcher
                 // skip because already compiled
                 if (project == null)
                 {
-                    var assembly = TryCompile(filePath);
-
-                    if (assembly != null)
+                    if (TryCompile(filePath, out var assembly))
                     {
                         assemblies.Add(new Tuple<string, Assembly>(filePath, assembly));
                         //RefreshAssembly(filePath, assembly);
