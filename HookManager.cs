@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -26,6 +27,20 @@ namespace DynamicPatcher
         Dictionary<int, HookTransferStation> transferStations = new Dictionary<int, HookTransferStation>();
 
         int maxHookSize = ASM.Jmp.Length;
+
+        public void CheckHook(HookInfo info)
+        {
+            HookAttribute hook = info.HookAttribute;
+            int targetAddress = hook.Address;
+
+            var module = Helpers.GetProcessModule(hook.Module);
+            if (IsJmpOutOfModule(new JumpStruct((int)module.BaseAddress, targetAddress)))
+            {
+                Logger.LogWarning("{0} jmp out of module - '{1}'.", info.Member.Name, module.ModuleName);
+            }
+
+            CheckHookRace(info);
+        }
 
         public void CheckHookRace(HookInfo info)
         {
@@ -71,12 +86,22 @@ namespace DynamicPatcher
                     {
                         Logger.LogWarning("{0} destroy 'JMP 0x{1:X}' at 0x{2:X}.", info.Member.Name, jmp.To, jmp.From);
                     }
-                    else if (jmp.To < 0x400000 || jmp.To > 0x7F0000)
+                    else if (IsJmpOutOfModule(jmp))
                     {
                         Logger.LogWarning("{0} overwrite 'JMP 0x{1:X}', which may jump to other module.", info.Member.Name, jmp.To);
                     }
                 }
             }
+        }
+
+        public bool IsJmpOutOfModule(JumpStruct jmp)
+        {
+            if (Helpers.GetProcessModuleAt(jmp.From, out var module))
+            {
+                return Helpers.AddressInModule(jmp.To, module) == false;
+            }
+
+            return false;
         }
 
         public void ApplyHook(MemberInfo member)
@@ -89,7 +114,7 @@ namespace DynamicPatcher
 
                 try
                 {
-                    CheckHookRace(info);
+                    CheckHook(info);
 
                     int key = hook.Address;
 

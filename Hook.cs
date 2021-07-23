@@ -17,13 +17,13 @@ namespace DynamicPatcher
 		/// <summary>Specifies that the hook is a ares style hook.</summary>
 		AresHook,
 		/// <summary>Specifies that the hook is just a jump to destination.</summary>
-		/// <remarks>this type hook can not hook a hooked address.</remarks>
+		/// <remarks>This type hook can not hook a hooked address.</remarks>
 		SimpleJumpToRet,
 		/// <summary>Specifies that the hook is just a jump to hook.</summary>
-		/// <remarks>this type hook can not hook a hooked address.</remarks>
+		/// <remarks>This type hook can not hook a hooked address.</remarks>
 		DirectJumpToHook,
 		/// <summary>Specifies that the hook is to write bytes to address.</summary>
-		/// <remarks>this type hook can not hook a hooked address.</remarks>
+		/// <remarks>This type hook can not hook a hooked address.</remarks>
 		WriteBytesHook
 	};
 
@@ -34,21 +34,74 @@ namespace DynamicPatcher
 	{
 		/// <summary>The hook behavior.</summary>
 		public HookType Type { get; }
-		/// <summary>The address to hook (write a jump).</summary>
-		public int Address { get; set; }
-		/// <summary>The number of bytes to store and overwrite</summary>
+		/// <summary>The absolute address to hook (write a jump).</summary>
+		/// <remarks>If Module was set, set RelativeAddress is safer.</remarks>
+		public int Address
+		{
+			get
+			{
+				if (string.IsNullOrEmpty(Module))
+				{
+					return _address;
+				}
+
+				return (int)Helpers.GetProcessModule(Module).BaseAddress + RelativeAddress;
+			}
+			set
+			{
+				if (string.IsNullOrEmpty(Module))
+				{
+					_address = value;
+					return;
+				}
+
+				// set RelativeAddress
+				_address = value - (int)Helpers.GetProcessModule(Module).BaseAddress;
+            }
+		}
+		/// <summary>The relative address to hook.</summary>
+		/// <remarks>If Module was not set, set Address is safer.</remarks>
+		public int RelativeAddress
+		{
+			get
+			{
+				if(string.IsNullOrEmpty(Module))
+				{
+					return Address - (int)Helpers.GetProcessModule().BaseAddress;
+				}
+
+				return _address;
+			}
+			set
+			{
+				if (string.IsNullOrEmpty(Module))
+				{
+					// set Address
+					_address = (int)Helpers.GetProcessModule().BaseAddress + value;
+					return;
+				}
+
+				// set RelativeAddress
+				_address = value;
+			}
+		}
+		/// <summary>The number of bytes to store and overwrite.</summary>
 		public int Size { get; set; }
+		/// <summary>The module to hook.</summary>
+		public string Module { get; }
 
 		// not necessary
 		// public string Name { get; set; }
 
 		/// <summary> Initializes a new instance of the DynamicPatcher.HookAttribute class with the specified HookType.</summary>
-		public HookAttribute(HookType type)
+		public HookAttribute(HookType type, string module = null)
 		{
 			Type = type;
+			Module = module;
 		}
-	}
 
+		private int _address;
+	}
 	class HookInfo : IComparable
 	{
 		public static bool TryCatchCallable { get; set; } = false;

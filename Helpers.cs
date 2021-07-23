@@ -114,7 +114,7 @@ namespace DynamicPatcher
             foreach (Assembly assembly in loadedAssemblies)
             {
                 AssemblyName assemblyName = assembly.GetName();
-                if (assemblyName.Name == name)
+                if (string.Equals(assemblyName.Name, name, StringComparison.OrdinalIgnoreCase))
                 {
                     return assembly;
                 }
@@ -135,6 +135,46 @@ namespace DynamicPatcher
 
             string path = Helpers.GetValidFullPath(fileName);
             return path;
+        }
+
+        public static ProcessModule GetProcessModule(string moduleName = null)
+        {
+            Process process = Process.GetCurrentProcess();
+            if (string.IsNullOrEmpty(moduleName))
+            {
+                return process.MainModule;
+            }
+
+            foreach (ProcessModule module in process.Modules)
+            {
+                if(string.Equals(module.ModuleName, moduleName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return module;
+                }
+            }
+
+            throw new DllNotFoundException($"Could not find module '{moduleName}'.");
+        }
+
+        public static bool GetProcessModuleAt(int address, out ProcessModule processModule)
+        {
+            processModule = null;
+            Process process = Process.GetCurrentProcess();
+            foreach (ProcessModule module in process.Modules)
+            {
+                if (AddressInModule(address, module))
+                {
+                    processModule = module;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static bool AddressInModule(int address, ProcessModule module)
+        {
+            return (int)module.BaseAddress <= address && address <= (int)module.BaseAddress + module.ModuleMemorySize;
         }
     }
 };
