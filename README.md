@@ -21,6 +21,7 @@ We can use it to do something below:
   - Write bytes to address
 - Recoverable Hook
 - Recoverable Hook from Exception (if caught)
+- Specified Module Hook
 - Dynamic Compile & Syringe Technique
 - Hook Conflict Detection
 
@@ -49,7 +50,7 @@ Quick Use
 4. Run game by Ares's `Syringe`.
 
 If DynamicPatcher not work, check the below:
-- Runtime VC++ 2015 - 2019 x86 and .NET Framework 4.8
+- Runtime [VC++ Redistributable 2015 - 2019 x86](https://aka.ms/vs/16/release/VC_redist.x86.exe) and [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48)
 - Run as Administrator
 
 Usage
