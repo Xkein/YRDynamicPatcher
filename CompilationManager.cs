@@ -29,6 +29,7 @@ namespace DynamicPatcher
         bool emitPDB;
         bool forceCompile;
         bool packAssembly;
+        OptimizationLevel optimizationLevel;
 
         PackageManager packageManager;
 
@@ -51,7 +52,7 @@ namespace DynamicPatcher
             compilationOptions = new CSharpCompilationOptions(
                             OutputKind.DynamicallyLinkedLibrary,
                             allowUnsafe: true,
-                            optimizationLevel: OptimizationLevel.Debug,
+                            optimizationLevel: optimizationLevel,
                             platform: Platform.AnyCpu,
                             warningLevel: 4
                             );
@@ -126,6 +127,7 @@ namespace DynamicPatcher
             emitPDB = configs["emit_pdb"].ToObject<bool>();
             forceCompile = configs["force_compile"].ToObject<bool>();
             packAssembly = configs["pack_assembly"].ToObject<bool>();
+            optimizationLevel = configs["optimization_level"].ToObject<OptimizationLevel>();
         }
 
         private void LoadSolution(string path)
