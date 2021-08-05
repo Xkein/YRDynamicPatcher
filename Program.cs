@@ -68,7 +68,8 @@ namespace DynamicPatcher
                 return false;
             };
 
-            string fileName = args.Name.Split(',')[0] + ".dll";// Console.WriteLine("try loading assembly: " + args.Name);
+            AssemblyName assemblyName = new AssemblyName(args.Name);
+            string fileName = assemblyName.Name + ".dll";// Console.WriteLine("try loading assembly: " + args.Name);
             string[] files = Directory.GetFiles(librariesDirectory, fileName, SearchOption.AllDirectories);
             if (files.Length > 0 && TryLoad(Path.Combine(librariesDirectory, files[0])))
             {
