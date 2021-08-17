@@ -157,6 +157,12 @@ namespace DynamicPatcher
                             case HookType.WriteBytesHook:
                                 station = new WriteBytesHookTransferStation(info);
                                 break;
+                            case HookType.ExportTableHook:
+                                station = new ExportTableHookTransferStation(info);
+                                break;
+                            case HookType.ImportTableHook:
+                                station = new ImportTableHookTransferStation(info);
+                                break;
                             default:
                                 Logger.LogError("found unkwnow hook: " + member.Name);
                                 return;

@@ -24,7 +24,12 @@ namespace DynamicPatcher
 		DirectJumpToHook,
 		/// <summary>Specifies that the hook is to write bytes to address.</summary>
 		/// <remarks>This type hook can not hook a hooked address.</remarks>
-		WriteBytesHook
+		WriteBytesHook,
+
+		/// <summary>Specifies that the hook is to overwrite exported target reference address.</summary>
+		ExportTableHook,
+		/// <summary>Specifies that the hook is to overwrite imported target reference address.</summary>
+		ImportTableHook
 	};
 
 	/// <summary>Controls the hook behavior and data.</summary>
@@ -89,6 +94,8 @@ namespace DynamicPatcher
 		public int Size { get; set; }
 		/// <summary>The module to hook.</summary>
 		public string Module { get; }
+		/// <summary>The export or import name of target.</summary>
+		public string TargetName { get; set; }
 
 		// not necessary
 		// public string Name { get; set; }
@@ -144,7 +151,7 @@ namespace DynamicPatcher
 				case MemberTypes.Event:
 				case MemberTypes.Field when typeof(Delegate).IsAssignableFrom(Field.FieldType):
 				case MemberTypes.Property when typeof(Delegate).IsAssignableFrom(Property.PropertyType):
-					var function = GetDelegate(GetHookFuntionType());
+					var function = GetDelegate();
 					return function.DynamicInvoke();
 
 				case MemberTypes.Field:
@@ -165,6 +172,14 @@ namespace DynamicPatcher
                 MemberTypes.Property when typeof(Delegate).IsAssignableFrom(Property.PropertyType) => Property.GetValue(null) as Delegate,
                 _ => null,
             };
+		}
+		public Delegate GetDelegate()
+		{
+            return Member.MemberType switch
+            {
+                MemberTypes.Method or MemberTypes.Event => GetDelegate(GetHookFuntionType()),
+                _ => GetDelegate(null),
+            };
         }
 
 		public Type GetHookFuntionType()
@@ -175,8 +190,10 @@ namespace DynamicPatcher
             {
                 HookType.AresHook => typeof(AresHookFunction),
                 HookType.SimpleJumpToRet => typeof(Func<int>),
-                HookType.DirectJumpToHook => typeof(Action),
 				HookType.WriteBytesHook => typeof(Func<byte[]>),
+				HookType.DirectJumpToHook or
+				HookType.ExportTableHook or
+				HookType.ImportTableHook => Helpers.GetMethodDelegateType(Method ?? Event?.RaiseMethod),
 				_ => null,
             };
         }
@@ -194,7 +211,7 @@ namespace DynamicPatcher
 
 			foreach (HookInfo info in TransferStation.HookInfos)
 			{
-				dlg = Delegate.Combine(dlg, info.GetDelegate(GetHookFuntionType()));
+				dlg = Delegate.Combine(dlg, info.GetDelegate());
 			}
 
 			if (TryCatchCallable)
@@ -249,7 +266,8 @@ namespace DynamicPatcher
 					return (IntPtr)Property.GetValue(null);
 			}
 
-			return Marshal.GetFunctionPointerForDelegate(GetCallableDlg());
+			var callableDlg = GetCallableDlg();
+			return Marshal.GetFunctionPointerForDelegate(callableDlg);
 		}
 
         public int CompareTo(object obj)

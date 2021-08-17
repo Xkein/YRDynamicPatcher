@@ -247,4 +247,72 @@ namespace DynamicPatcher
 			MemoryHelper.Write(hook.Address, bytes, bytes.Length);
 		}
 	}
+
+	class ExportTableHookTransferStation : HookTransferStation
+	{
+		public ExportTableHookTransferStation(HookInfo info) : base(info)
+		{
+		}
+
+		public override bool Match(HookType hookType)
+		{
+			return hookType == HookType.ExportTableHook;
+		}
+
+		public override void SetHook(HookInfo info)
+		{
+			base.SetHook(info);
+
+			HookAttribute hook = info.GetHookAttribute();
+			var callable = (int)info.GetCallable();
+
+			var pe = Helpers.GetPE(hook.Module);
+			var function = Array.Find(pe.ExportedFunctions, f => f.Name == hook.TargetName);
+
+			if (function == null)
+			{
+				throw new KeyNotFoundException($"could not find {hook.TargetName} in export table of {hook.Module}.");
+			}
+
+			var exportDir = pe.ImageExportDirectory;
+			// int address = (int)(pe.ImageNtHeaders.OptionalHeader.ImageBase + function.Address);
+			var pFunctionOffset = pe.ImageNtHeaders.OptionalHeader.ImageBase + exportDir.AddressOfFunctions;
+            int address = (int)(pFunctionOffset + sizeof(uint) * (function.Ordinal - exportDir.Base));
+			int callableOffset = callable - (int)pe.ImageNtHeaders.OptionalHeader.ImageBase;
+
+			MemoryHelper.Write(address, callableOffset);
+		}
+	}
+	class ImportTableHookTransferStation : HookTransferStation
+	{
+		public ImportTableHookTransferStation(HookInfo info) : base(info)
+		{
+		}
+
+		public override bool Match(HookType hookType)
+		{
+			return hookType == HookType.ImportTableHook;
+		}
+
+		public override void SetHook(HookInfo info)
+		{
+			base.SetHook(info);
+
+			HookAttribute hook = info.GetHookAttribute();
+			var callable = (int)info.GetCallable();
+
+			var pe = Helpers.GetPE(hook.Module);
+			var function = Array.Find(pe.ImportedFunctions, f => f.Name == hook.TargetName);
+
+			if(function == null)
+			{
+				throw new KeyNotFoundException($"could not find {hook.TargetName} in import table of {hook.Module}.");
+			}
+
+			var iat = pe.ImageNtHeaders.OptionalHeader.DataDirectory[(int)PeNet.Header.Pe.DataDirectoryType.IAT];
+			int address = (int)(pe.ImageNtHeaders.OptionalHeader.ImageBase + iat.VirtualAddress + function.IATOffset);
+
+			MemoryHelper.Write(address, callable);
+		}
+	}
 }

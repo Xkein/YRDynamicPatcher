@@ -9,17 +9,21 @@ using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
 using System.Runtime.ConstrainedExecution;
 using System.Reflection;
+using PeNet;
+using System.Linq.Expressions;
+using System.Reflection.Emit;
 
 namespace DynamicPatcher
 {
-    class Helpers
+    static class Helpers
     {
         private static IntPtr processHandle = IntPtr.Zero;
 
-        static IntPtr ProcessHandle {
+        static IntPtr ProcessHandle
+        {
             get
             {
-                if(processHandle == IntPtr.Zero)
+                if (processHandle == IntPtr.Zero)
                 {
                     processHandle = FindProcessHandle();
                 }
@@ -40,10 +44,11 @@ namespace DynamicPatcher
                     {
                         Logger.Log("find process: {0} ({1})", targetProcess.MainWindowTitle, targetProcess.Id);
                         targetProcess.EnableRaisingEvents = true;
-                        targetProcess.Exited += (object sender, EventArgs e) => {
+                        targetProcess.Exited += (object sender, EventArgs e) =>
+                        {
                             ProcessHandle = IntPtr.Zero;
                             Logger.Log("{0} ({1}) exited.", targetProcess.MainWindowTitle, targetProcess.Id);
-                            };
+                        };
                         return targetProcess.Handle;
                     }
                     catch (Exception e)
@@ -147,7 +152,7 @@ namespace DynamicPatcher
 
             foreach (ProcessModule module in process.Modules)
             {
-                if(string.Equals(module.ModuleName, moduleName, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(module.ModuleName, moduleName, StringComparison.OrdinalIgnoreCase))
                 {
                     return module;
                 }
@@ -175,6 +180,108 @@ namespace DynamicPatcher
         public static bool AddressInModule(int address, ProcessModule module)
         {
             return (int)module.BaseAddress <= address && address <= (int)module.BaseAddress + module.ModuleMemorySize;
+        }
+
+        public static unsafe PeFile GetPE(string moduleName)
+        {
+            var module = GetProcessModule(moduleName);
+            var stream = new UnmanagedMemoryStream((byte*)module.BaseAddress.ToPointer(), module.ModuleMemorySize);
+            if (PeFile.TryParse(stream, out var peFile, true))
+            {
+                return peFile;
+            }
+
+            throw new Exception($"Could not get PE '{moduleName}'.");
+        }
+
+        // System.Linq.Expressions.Compiler.AssemblyGen from System.Core.dll
+        private sealed class AssemblyGen
+        {
+            private static AssemblyGen Assembly
+            {
+                get
+                {
+                    if (AssemblyGen._assembly == null)
+                    {
+                        System.Threading.Interlocked.CompareExchange<AssemblyGen>(ref AssemblyGen._assembly, new AssemblyGen(), null);
+                    }
+                    return AssemblyGen._assembly;
+                }
+            }
+
+            private AssemblyGen()
+            {
+                AssemblyName assemblyName = new AssemblyName("DPSnippets");
+                CustomAttributeBuilder[] assemblyAttributes = new CustomAttributeBuilder[]
+                {
+                new CustomAttributeBuilder(typeof(System.Security.SecurityTransparentAttribute).GetConstructor(Type.EmptyTypes), new object[0])
+                };
+                this._myAssembly = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run, assemblyAttributes);
+                this._myModule = this._myAssembly.DefineDynamicModule(assemblyName.Name, false);
+                this._myAssembly.DefineVersionInfoResource();
+            }
+
+            private TypeBuilder DefineType(string name, Type parent, TypeAttributes attr)
+            {
+                if (name == null)
+                {
+                    throw new ArgumentNullException(nameof(name));
+                }
+                if (parent == null)
+                {
+                    throw new ArgumentNullException(nameof(parent));
+                }
+
+                StringBuilder stringBuilder = new StringBuilder(name);
+                int value = System.Threading.Interlocked.Increment(ref this._index);
+                stringBuilder.Append("$");
+                stringBuilder.Append(value);
+                stringBuilder.Replace('+', '_').Replace('[', '_').Replace(']', '_').Replace('*', '_').Replace('&', '_').Replace(',', '_').Replace('\\', '_');
+                name = stringBuilder.ToString();
+                return this._myModule.DefineType(name, attr, parent);
+            }
+
+            internal static TypeBuilder DefineDelegateType(string name)
+            {
+                return AssemblyGen.Assembly.DefineType(name, typeof(MulticastDelegate), TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.AutoClass);
+            }
+
+            private static AssemblyGen _assembly;
+            private readonly AssemblyBuilder _myAssembly;
+            private readonly ModuleBuilder _myModule;
+            private int _index;
+        }
+
+        private static readonly Type[] _DelegateCtorSignature = new Type[]
+        {
+            typeof(object),
+            typeof(IntPtr)
+        };
+
+        public static Type GetMethodDelegateType(MethodInfo info)
+        {
+            if (info == null)
+            {
+                throw new ArgumentNullException(nameof(info));
+            }
+
+            var parameters = info.GetParameters();
+            Type returnType = info.ReturnParameter.ParameterType;
+            Type[] parameterTypes = (from p in parameters select p.ParameterType).ToArray();
+
+            TypeBuilder typeBuilder = AssemblyGen.DefineDelegateType($"{info.Name}+Delegate{parameterTypes.Length}(AutoGenerated)");
+            typeBuilder.DefineConstructor(MethodAttributes.FamANDAssem | MethodAttributes.Family | MethodAttributes.HideBySig | MethodAttributes.RTSpecialName, CallingConventions.Standard,
+                _DelegateCtorSignature).SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
+            typeBuilder.DefineMethod("Invoke", MethodAttributes.FamANDAssem | MethodAttributes.Family | MethodAttributes.Virtual | MethodAttributes.HideBySig | MethodAttributes.VtableLayoutMask, returnType, parameterTypes).SetImplementationFlags(MethodImplAttributes.CodeTypeMask);
+            return typeBuilder.CreateType();
+
+            ////var parameterExpressions = (from p in parameters select Expression.Parameter(p.ParameterType, p.Name)).ToArray();
+            ////var lambda = Expression.Lambda(Expression.Call(info, parameterExpressions), $"{info.Name}'s Lambda(Auto Generated)", parameterExpressions);
+            ////var dlg = lambda.Compile();
+            ////return dlg.GetType();
+
+            //parameterTypes = (parameterTypes.Concat(new Type[] { info.ReturnParameter.ParameterType })).ToArray();
+            //return Expression.GetDelegateType(parameterTypes);
         }
     }
 };
