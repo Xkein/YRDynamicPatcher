@@ -265,22 +265,14 @@ namespace DynamicPatcher
 
 			HookAttribute hook = info.GetHookAttribute();
 			var callable = (int)info.GetCallable();
+			Logger.Log("export table hook on {0}::{1}", hook.Module, hook.TargetName);
+			Logger.Log("export table hook callable: 0x{0:X}", callable);
 
-			var pe = Helpers.GetPE(hook.Module);
-			var function = Array.Find(pe.ExportedFunctions, f => f.Name == hook.TargetName);
+			var module = Helpers.GetProcessModule(hook.Module);
+			int callableOffset = callable - (int)module.BaseAddress;
+			Logger.Log("export table hook callable offset: 0x{0:X}", callableOffset);
 
-			if (function == null)
-			{
-				throw new KeyNotFoundException($"could not find {hook.TargetName} in export table of {hook.Module}.");
-			}
-
-			var exportDir = pe.ImageExportDirectory;
-			// int address = (int)(pe.ImageNtHeaders.OptionalHeader.ImageBase + function.Address);
-			var pFunctionOffset = pe.ImageNtHeaders.OptionalHeader.ImageBase + exportDir.AddressOfFunctions;
-            int address = (int)(pFunctionOffset + sizeof(uint) * (function.Ordinal - exportDir.Base));
-			int callableOffset = callable - (int)pe.ImageNtHeaders.OptionalHeader.ImageBase;
-
-			MemoryHelper.Write(address, callableOffset);
+			MemoryHelper.Write(hook.Address, callableOffset);
 		}
 	}
 	class ImportTableHookTransferStation : HookTransferStation
@@ -300,19 +292,10 @@ namespace DynamicPatcher
 
 			HookAttribute hook = info.GetHookAttribute();
 			var callable = (int)info.GetCallable();
+			Logger.Log("import table hook on {0}::{1}", hook.Module, hook.TargetName);
+			Logger.Log("import table hook callable: 0x{0:X}", callable);
 
-			var pe = Helpers.GetPE(hook.Module);
-			var function = Array.Find(pe.ImportedFunctions, f => f.Name == hook.TargetName);
-
-			if(function == null)
-			{
-				throw new KeyNotFoundException($"could not find {hook.TargetName} in import table of {hook.Module}.");
-			}
-
-			var iat = pe.ImageNtHeaders.OptionalHeader.DataDirectory[(int)PeNet.Header.Pe.DataDirectoryType.IAT];
-			int address = (int)(pe.ImageNtHeaders.OptionalHeader.ImageBase + iat.VirtualAddress + function.IATOffset);
-
-			MemoryHelper.Write(address, callable);
+			MemoryHelper.Write(hook.Address, callable);
 		}
 	}
 }

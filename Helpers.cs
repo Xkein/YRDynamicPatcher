@@ -194,6 +194,40 @@ namespace DynamicPatcher
             throw new Exception($"Could not get PE '{moduleName}'.");
         }
 
+        public static int GetEATAddress(string moduleName, string funcName)
+        {
+            var pe = Helpers.GetPE(moduleName);
+            var function = Array.Find(pe.ExportedFunctions, f => f.Name == funcName);
+
+            if (function == null)
+            {
+                throw new KeyNotFoundException($"could not find {moduleName} in export table of {funcName}.");
+            }
+
+            var exportDir = pe.ImageExportDirectory;
+            // int address = (int)(pe.ImageNtHeaders.OptionalHeader.ImageBase + function.Address);
+            var pFunctionOffset = pe.ImageNtHeaders.OptionalHeader.ImageBase + exportDir.AddressOfFunctions;
+            int address = (int)(pFunctionOffset + sizeof(uint) * (function.Ordinal - exportDir.Base));
+
+            return address;
+        }
+
+        public static int GetIATAddress(string moduleName, string funcName)
+        {
+            var pe = Helpers.GetPE(moduleName);
+            var function = Array.Find(pe.ImportedFunctions, f => f.Name == funcName);
+
+            if (function == null)
+            {
+                throw new KeyNotFoundException($"could not find {moduleName} in import table of {funcName}.");
+            }
+
+            var iat = pe.ImageNtHeaders.OptionalHeader.DataDirectory[(int)PeNet.Header.Pe.DataDirectoryType.IAT];
+            int address = (int)(pe.ImageNtHeaders.OptionalHeader.ImageBase + iat.VirtualAddress + function.IATOffset);
+
+            return address;
+        }
+
         // System.Linq.Expressions.Compiler.AssemblyGen from System.Core.dll
         private sealed class AssemblyGen
         {

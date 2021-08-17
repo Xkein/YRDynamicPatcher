@@ -45,15 +45,30 @@ namespace DynamicPatcher
 		{
 			get
 			{
+				switch (Type)
+				{
+					case HookType.ExportTableHook:
+						return Helpers.GetEATAddress(Module, TargetName);
+					case HookType.ImportTableHook:
+						return Helpers.GetIATAddress(Module, TargetName);
+				}
+
 				if (string.IsNullOrEmpty(Module))
 				{
 					return _address;
 				}
 
-				return (int)Helpers.GetProcessModule(Module).BaseAddress + RelativeAddress;
+                return (int)Helpers.GetProcessModule(Module).BaseAddress + RelativeAddress;
 			}
 			set
 			{
+				switch (Type)
+				{
+					case HookType.ExportTableHook:
+					case HookType.ImportTableHook:
+						throw new InvalidOperationException($"you can not set address for {Type}.");
+				}
+
 				if (string.IsNullOrEmpty(Module))
 				{
 					_address = value;
@@ -70,7 +85,14 @@ namespace DynamicPatcher
 		{
 			get
 			{
-				if(string.IsNullOrEmpty(Module))
+				switch (Type)
+				{
+					case HookType.ExportTableHook:
+					case HookType.ImportTableHook:
+						return Address - (int)Helpers.GetProcessModule(Module).BaseAddress;
+				}
+
+				if (string.IsNullOrEmpty(Module))
 				{
 					return Address - (int)Helpers.GetProcessModule().BaseAddress;
 				}
@@ -79,6 +101,13 @@ namespace DynamicPatcher
 			}
 			set
 			{
+				switch (Type)
+				{
+					case HookType.ExportTableHook:
+					case HookType.ImportTableHook:
+						throw new InvalidOperationException($"you can not set address for {Type}.");
+				}
+
 				if (string.IsNullOrEmpty(Module))
 				{
 					// set Address
@@ -91,7 +120,31 @@ namespace DynamicPatcher
 			}
 		}
 		/// <summary>The number of bytes to store and overwrite.</summary>
-		public int Size { get; set; }
+		public int Size
+		{
+			get
+			{
+				switch (Type)
+				{
+					case HookType.ExportTableHook:
+					case HookType.ImportTableHook:
+						return sizeof(uint);
+				}
+
+				return _size;
+			}
+			set
+			{
+				switch (Type)
+				{
+					case HookType.ExportTableHook:
+					case HookType.ImportTableHook:
+						throw new InvalidOperationException($"you can not set size for {Type}.");
+				}
+
+				_size = value;
+			}
+		}
 		/// <summary>The module to hook.</summary>
 		public string Module { get; }
 		/// <summary>The export or import name of target.</summary>
@@ -108,6 +161,7 @@ namespace DynamicPatcher
 		}
 
 		private int _address;
+		private int _size;
 	}
 	class HookInfo : IComparable
 	{
