@@ -48,6 +48,9 @@
     <AssemblyOriginatorKeyFile>DynamicPatcher.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="PeNet">
+      <HintPath>References\PeNet.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Numerics" />
