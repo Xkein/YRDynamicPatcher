@@ -32,6 +32,13 @@ namespace DynamicPatcher
     /// <summary>Represents the method that handles the DynamicPatcher.Patcher.AssemblyRefresh event of an DynamicPatcher.Patcher.</summary>
     public delegate void AssemblyRefreshEventHandler(object sender, AssemblyRefreshEventArgs args);
 
+
+    /// <summary>Run class constructor before hook.</summary>
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
+    public sealed class RunClassConstructorFirstAttribute : Attribute
+    {
+    }
+
     /// <summary>The class of DynamicPatcher.</summary>
     public class Patcher
     {
@@ -284,6 +291,10 @@ namespace DynamicPatcher
             foreach (Type type in types)
             {
                 Logger.Log("in class {0}: ", type.FullName);
+                if (type.IsDefined(typeof(RunClassConstructorFirstAttribute), false))
+                {
+                    System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(type.TypeHandle);
+                }
 
                 MemberInfo[] members = type.GetMembers();
                 foreach (MemberInfo member in members)
