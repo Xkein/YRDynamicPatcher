@@ -148,7 +148,7 @@ namespace DynamicPatcher
                     string line = reader.ReadLine();
                     if (line.StartsWith("Project"))
                     {
-                        string pattern = @"^Project\(""\{.+?\}""\) = ""(\w+?)"", ""(.+?)"", ""\{(.+?)\}""";
+                        string pattern = @"^Project\(""\{.+?\}""\) = ""(.+?)"", ""(.+?)"", ""\{(.+?)\}""";
                         Match match = Regex.Match(line, pattern);
 
                         string projectName = match.Groups[1].Value;
