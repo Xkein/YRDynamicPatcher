@@ -45,7 +45,7 @@
     <SignAssembly>true</SignAssembly>
   </PropertyGroup>
   <PropertyGroup>
-    <AssemblyOriginatorKeyFile>DynamicPatcher.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>Xkein.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="PeNet">
@@ -61,6 +61,9 @@
     <Reference Include="System.Data" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml" />
+    <Reference Include="Xkein.Memory">
+      <HintPath>References\Xkein.Memory.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ASM.cs" />
@@ -80,7 +83,7 @@
     <Compile Include="Register.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="DynamicPatcher.snk" />
+    <None Include="Xkein.snk" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces">
