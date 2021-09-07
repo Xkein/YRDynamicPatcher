@@ -131,15 +131,29 @@ namespace DynamicPatcher
                 {
                     Task.Run(() =>
                     {
+                        Action showGCInfo = () =>
+                        {
+                            var curProc = Process.GetCurrentProcess();
+                            Logger.Log("Total Memory: {0} MB", curProc.PrivateMemorySize64 / 1024 / 1024);
+                            Logger.Log("Managed Memory: {0} MB", GC.GetTotalMemory(true) / 1024 / 1024);
+                            for (int g = 0; g <= GC.MaxGeneration; g++)
+                            {
+                                Logger.Log("{0} Generation Count: {1}", g, GC.CollectionCount(g));
+                            }
+
+                        };
                         while (true)
                         {
                             Logger.Log("Sleep 10s.");
                             Thread.Sleep(TimeSpan.FromSeconds(10));
-                            Logger.Log("GC collect.");
+                            Logger.Log("----------------------");
+                            Logger.Log("GC collecting...");
+                            showGCInfo();
                             GC.Collect();
                             GC.WaitForPendingFinalizers();
                             GC.WaitForFullGCComplete();
                             Logger.Log("GC collect finish.");
+                            showGCInfo();
                         }
                     });
                 }
@@ -222,34 +236,42 @@ namespace DynamicPatcher
 
         void FirstCompile(string path)
         {
-            Logger.Log("first compile: " + path);
-
-            var dir = new DirectoryInfo(path);
-            var list = dir.GetFiles("*.cs", SearchOption.AllDirectories).ToList();
-
-            List<Tuple<string, Assembly>> assemblies = new();
-
-            foreach (var file in list)
+            try
             {
-                string filePath = file.FullName;
-                var project = CompilationManager.GetProjectFromFile(filePath);
-                // skip because already compiled
-                if (project == null)
+                Logger.Log("first compile: " + path);
+
+                var dir = new DirectoryInfo(path);
+                var list = dir.GetFiles("*.cs", SearchOption.AllDirectories).ToList();
+
+                List<Tuple<string, Assembly>> assemblies = new();
+
+                foreach (var file in list)
                 {
-                    if (TryCompile(filePath, out var assembly))
+                    string filePath = file.FullName;
+                    var project = CompilationManager.GetProjectFromFile(filePath);
+                    // skip because already compiled
+                    if (project == null)
                     {
-                        assemblies.Add(new Tuple<string, Assembly>(filePath, assembly));
-                        //RefreshAssembly(filePath, assembly);
-                    }
-                    else
-                    {
-                        Logger.Log("first compile error: " + file.FullName);
-                        Logger.Log("");
+                        if (TryCompile(filePath, out var assembly))
+                        {
+                            assemblies.Add(new Tuple<string, Assembly>(filePath, assembly));
+                            //RefreshAssembly(filePath, assembly);
+                        }
+                        else
+                        {
+                            Logger.Log("first compile error: " + file.FullName);
+                            Logger.Log("");
+                        }
                     }
                 }
-            }
 
-            assemblies.ForEach((tuple) => RefreshAssembly(tuple.Item1, tuple.Item2));
+                assemblies.ForEach((tuple) => RefreshAssembly(tuple.Item1, tuple.Item2));
+            }
+            catch (Exception ex)
+            {
+                Logger.PrintException(ex);
+                throw ex;
+            }
         }
 
         void RefreshAssembly(string path, Assembly assembly)
