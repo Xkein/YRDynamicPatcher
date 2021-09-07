@@ -6,6 +6,7 @@ using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using Xkein.Memory;
 
 namespace DynamicPatcher
 {
@@ -57,7 +58,7 @@ namespace DynamicPatcher
     }
 
     /// <summary>The memory helper on target process.</summary>
-    public unsafe class MemoryHelper
+    public unsafe static class MemoryHelper
     {
         [DllImport("kernel32.dll")]
         static extern bool ReadProcessMemory(IntPtr hProcess, int lpBaseAddress, byte[] lpBuffer, int dwSize, ref int lpNumberOfBytesRead);
@@ -112,25 +113,31 @@ namespace DynamicPatcher
             PAGE_EXECUTE_READWRITE = 0x40
         }
         [DllImport("kernel32.dll")]
-        static extern int VirtualAllocEx(IntPtr hProcess, int lpBaseAddress, int dwSize, AllocationType flAllocationType, Protect flProtect);
-
-        /// <summary>Allocate fixed size memory on target process.</summary>
-        static public int AllocMemory(int size)
-        {
-            return VirtualAllocEx(Helpers.GetProcessHandle(), 0, size, AllocationType.MEM_RESERVE | AllocationType.MEM_COMMIT, Protect.PAGE_EXECUTE_READWRITE);
-        }
+        static extern IntPtr VirtualAllocEx(IntPtr hProcess, int lpBaseAddress, int dwSize, AllocationType flAllocationType, Protect flProtect);
 
         enum FreeType
         {
             MEM_RELEASE = 0x00008000
         }
         [DllImport("kernel32.dll")]
-        static extern bool VirtualFreeEx(IntPtr hProcess, int lpBaseAddress, int dwSize, FreeType flFreeType);
+        static extern bool VirtualFreeEx(IntPtr hProcess, IntPtr lpBaseAddress, int dwSize, FreeType flFreeType);
+
+
+        private static Allocator allocator = new Allocator(
+            (size) => VirtualAllocEx(Helpers.GetProcessHandle(), 0, size, AllocationType.MEM_RESERVE | AllocationType.MEM_COMMIT, Protect.PAGE_EXECUTE_READWRITE),
+            (address) => VirtualFreeEx(Helpers.GetProcessHandle(), address, 0, FreeType.MEM_RELEASE));
+
+        /// <summary>Allocate fixed size memory on target process.</summary>
+        static public int AllocMemory(int size)
+        {
+            return (int)allocator.Alloc(size);
+        }
 
         /// <summary>Free memory on target process.</summary>
         static public bool FreeMemory(int address)
         {
-            return VirtualFreeEx(Helpers.GetProcessHandle(), address, 0, FreeType.MEM_RELEASE);
+            allocator.Free((IntPtr)address);
+            return true;
         }
     }
 }
