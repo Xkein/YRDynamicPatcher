@@ -21,9 +21,8 @@ jobs:
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
-        
-      - name: Checkout submodules
-        run: git submodule update --init --recursive
+        with:
+          submodules: 'recursive'
         
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1
