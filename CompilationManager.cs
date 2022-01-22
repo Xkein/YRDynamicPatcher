@@ -38,6 +38,7 @@ namespace DynamicPatcher
 
         Solution solution;
         AdhocWorkspace workspace;
+        Dictionary<Guid, bool> shouldBuildProject;
 
         string workDirectory;
 
@@ -64,6 +65,7 @@ namespace DynamicPatcher
             if (solutionlist.Count >= 0)
             {
                 workspace = new AdhocWorkspace();
+                shouldBuildProject = new Dictionary<Guid, bool>();
 
                 LoadSolution(solutionlist[0].FullName);
 
@@ -92,6 +94,11 @@ namespace DynamicPatcher
             foreach (var reference in references)
             {
                 string path = Helpers.GetAssemblyPath(reference);
+                if (string.IsNullOrEmpty(path))
+                {
+                    Logger.Log("could not find reference:" + reference);
+                    continue;
+                }
                 MetadataReference metadata = MetadataReference.CreateFromFile(path);
 
                 metadataReferences.Add(metadata);
@@ -154,8 +161,21 @@ namespace DynamicPatcher
                         string projectName = match.Groups[1].Value;
                         string projectPath = Path.Combine(dir, match.Groups[2].Value);
                         string projectGuid = match.Groups[3].Value;
+                        Guid guid = Guid.Parse(projectGuid);
 
-                        LoadProject(projectName, projectPath, ProjectId.CreateFromSerialized(Guid.Parse(projectGuid)));
+                        LoadProject(projectName, projectPath, ProjectId.CreateFromSerialized(guid));
+                        shouldBuildProject[guid] = false;
+                    }
+                    else if (line.Contains(".Build.0"))
+                    {
+                        string pattern = @"\{(.+?)\}\.(.+?)\|(.+?)\.(.+?) = (.+?)\|(.+)";
+                        Match match = Regex.Match(line, pattern);
+
+                        string projectGuid = match.Groups[1].Value;
+                        Guid guid = Guid.Parse(projectGuid);
+
+                        Project project = solution.GetProject(ProjectId.CreateFromSerialized(Guid.Parse(projectGuid)));
+                        shouldBuildProject[guid] = true;
                     }
                 }
             }
@@ -414,6 +434,13 @@ namespace DynamicPatcher
 
         private Assembly CompileProject(Project project)
         {
+            if (shouldBuildProject[project.Id.Id] == false)
+            {
+                Logger.LogWarning("skip compile project: " + project.FilePath);
+                Logger.Log("");
+                return null;
+            }
+
             Logger.Log("compiling project: " + project.FilePath);
 
             string outputPath = GetOutputPath(Path.ChangeExtension(project.FilePath, "dll"));
