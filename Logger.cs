@@ -42,8 +42,9 @@ namespace DynamicPatcher
         {
             HasException = true;
 
+            Logger.Log("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
             PrintExceptionBase(e);
-            Logger.Log("");
+            Logger.Log("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
         }
 
         private static void PrintExceptionBase(Exception e)
@@ -54,9 +55,19 @@ namespace DynamicPatcher
             Logger.LogError("TargetSite.Name: " + e.TargetSite?.Name);
             Logger.LogError("Stacktrace: " + e.StackTrace);
 
+            if (e is System.Reflection.ReflectionTypeLoadException rtle)
+            {
+                foreach (var le in rtle.LoaderExceptions)
+                {
+                    Logger.Log("--------------------------------------------------------");
+                    PrintExceptionBase(le);
+                }
+            }
+
             if (e.InnerException != null)
             {
-                PrintException(e.InnerException);
+                Logger.Log("--------------------------------------------------------");
+                PrintExceptionBase(e.InnerException);
             }
         }
 
