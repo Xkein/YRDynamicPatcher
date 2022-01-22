@@ -31,20 +31,34 @@ namespace DynamicPatcher
 
         static Program()
         {
-            string workDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DynamicPatcher");
-            librariesDirectory = Path.Combine(workDir, "Libraries");
-            AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
-            //AppDomain.CurrentDomain.AssemblyLoad += CurrentDomain_AssemblyLoad;
+            try
+            {
+                string workDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DynamicPatcher");
+                librariesDirectory = Path.Combine(workDir, "Libraries");
+                AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
+                //AppDomain.CurrentDomain.AssemblyLoad += CurrentDomain_AssemblyLoad;
 
-            Patcher = new Patcher();
-            Patcher.Init(workDir);
+                Patcher = new Patcher();
+                Patcher.Init(workDir);
+            }
+            catch (Exception e)
+            {
+                Logger.PrintException(e);
+            }
         }
 
         /// <summary>Activate Dynamic Patcher.</summary>
         public void Activate()
         {
-            Task task = Patcher.Start();
-            task.Wait();
+            try
+            {
+                Task task = Patcher.Start();
+                task.Wait();
+            }
+            catch (Exception e)
+            {
+                Logger.PrintException(e);
+            }
         }
 
         private static void CurrentDomain_AssemblyLoad(object sender, AssemblyLoadEventArgs args)
