@@ -74,7 +74,114 @@ namespace DynamicPatcher
 
         internal void Init(string workDir)
         {
-            FileStream logFileStream = new FileStream(Path.Combine(workDir, "patcher.log"), FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
+            string logFileName = Path.Combine(workDir, "patcher.log");
+            CreateLogFile(logFileName);
+            DateTime date = DateTime.Now;
+            logFileName = Path.Combine(workDir, "Logs", string.Format("patcher_{0}_{1}_{2}_{3}_{4}.log", date.Year, date.Month, date.Day, date.Hour, date.Minute));
+            CreateLogFile(logFileName);
+
+            AddExceptionHandler(workDir, logFileName);
+
+            Logo.ShowLogo();
+
+            Logger.Log("working directory: " + workDir);
+
+            Logger.Log("loading configs...");
+            LoadConfig(workDir);
+
+            Logger.Log("initializing CompilationManager...");
+            CompilationManager = new CompilationManager(workDir);
+            Logger.Log("initializing HookManager...");
+            hookManager = new HookManager();
+
+            Logger.Log("initializing CodeWatcher...");
+            codeWatcher = new CodeWatcher(workDir);
+            codeWatcher.FirstAction += FirstCompile;
+            codeWatcher.OnCodeChanged += OnCodeChanged;
+        }
+
+        private void AddExceptionHandler(string workDir, string logFileName)
+        {
+            ExceptionHandler += (object sender, UnhandledExceptionEventArgs args) =>
+            {
+                if (args != null)
+                {
+                    Logger.PrintException(args.ExceptionObject as Exception);
+                }
+            };
+
+            ExceptionHandler += (object sender, UnhandledExceptionEventArgs args) =>
+            {
+                string dir = Path.Combine(workDir, "ErrorLogs");
+                Directory.CreateDirectory(dir);
+                DateTime date = DateTime.Now;
+
+                File.Copy(logFileName,
+                    Path.Combine(dir, string.Format("ErrorLog_{0}_{1}_{2}_{3}_{4}.log",
+                    date.Year, date.Month, date.Day, date.Hour, date.Minute)), true);
+                System.Windows.Forms.MessageBox.Show("ErrorLog Created", "Dynamic Patcher");
+            };
+        }
+
+        private void LoadConfig(string workDir)
+        {
+            using StreamReader file = File.OpenText(Path.Combine(workDir, "dynamicpatcher.config.json"));
+            using JsonTextReader reader = new JsonTextReader(file);
+            var json = JObject.Load(reader);
+
+            if (json["hide_console"].ToObject<bool>())
+            {
+                FreeConsole();
+                Logger.WriteLine -= ConsoleWriteLine;
+            }
+
+            if (json["show_attach_window"].ToObject<bool>())
+            {
+                System.Windows.Forms.MessageBox.Show("Attach Me", "Dynamic Patcher");
+            }
+
+            if (json["try_catch_callable"].ToObject<bool>())
+            {
+                HookInfo.TryCatchCallable = true;
+            }
+            Logger.Log("try-catch callable: " + HookInfo.TryCatchCallable);
+
+            if (json["force_gc_collect"].ToObject<bool>())
+            {
+                Task.Run(() =>
+                {
+                    Action showGCInfo = () =>
+                    {
+                        var curProc = Process.GetCurrentProcess();
+                        Logger.Log("Total Memory: {0} MB", curProc.PrivateMemorySize64 / 1024 / 1024);
+                        Logger.Log("Managed Memory: {0} MB", GC.GetTotalMemory(true) / 1024 / 1024);
+                        for (int g = 0; g <= GC.MaxGeneration; g++)
+                        {
+                            Logger.Log("{0} Generation Count: {1}", g, GC.CollectionCount(g));
+                        }
+
+                    };
+                    while (true)
+                    {
+                        Logger.Log("Sleep 10s.");
+                        Thread.Sleep(TimeSpan.FromSeconds(10));
+                        Logger.Log("----------------------");
+                        Logger.Log("GC collecting...");
+                        showGCInfo();
+                        GC.Collect();
+                        GC.WaitForPendingFinalizers();
+                        GC.WaitForFullGCComplete();
+                        Logger.Log("GC collect finish.");
+                        showGCInfo();
+                    }
+                });
+            }
+        }
+
+        private static void CreateLogFile(string logFileName)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(logFileName));
+            FileStream logFileStream = new FileStream(logFileName, FileMode.Create, FileAccess.ReadWrite, FileShare.Read);
             var logFileWriter = new StreamWriter(logFileStream);
             logFileWriter.AutoFlush = true;
 
@@ -82,93 +189,6 @@ namespace DynamicPatcher
             {
                 logFileWriter.WriteLine(str);
             };
-
-            ExceptionHandler += (object sender, UnhandledExceptionEventArgs args) =>
-            {
-                if(args != null)
-                {
-                    Logger.PrintException(args.ExceptionObject as Exception);
-                }
-            };
-
-            ExceptionHandler += (object sender,  UnhandledExceptionEventArgs args) =>
-            {
-                string dir = Path.Combine(workDir, "ErrorLogs");
-                Directory.CreateDirectory(dir);
-                DateTime date = DateTime.Now;
-
-                File.Copy(logFileStream.Name,
-                    Path.Combine(dir, string.Format("ErrorLog_{0}_{1}_{2}_{3}_{4}.log",
-                    date.Year, date.Month, date.Day, date.Hour, date.Minute)), true);
-                System.Windows.Forms.MessageBox.Show("ErrorLog Created", "Dynamic Patcher");
-            };
-
-            try
-            {
-                Logo.ShowLogo();
-                using StreamReader file = File.OpenText(Path.Combine(workDir, "dynamicpatcher.config.json"));
-                using JsonTextReader reader = new JsonTextReader(file);
-                var json = JObject.Load(reader);
-
-                if (json["hide_console"].ToObject<bool>())
-                {
-                    FreeConsole();
-                    Logger.WriteLine -= ConsoleWriteLine;
-                }
-
-                if (json["show_attach_window"].ToObject<bool>())
-                {
-                    System.Windows.Forms.MessageBox.Show("Attach Me", "Dynamic Patcher");
-                }
-
-                if (json["try_catch_callable"].ToObject<bool>())
-                {
-                    HookInfo.TryCatchCallable = true;
-                }
-                Logger.Log("try-catch callable: " + HookInfo.TryCatchCallable);
-
-                if (json["force_gc_collect"].ToObject<bool>())
-                {
-                    Task.Run(() =>
-                    {
-                        Action showGCInfo = () =>
-                        {
-                            var curProc = Process.GetCurrentProcess();
-                            Logger.Log("Total Memory: {0} MB", curProc.PrivateMemorySize64 / 1024 / 1024);
-                            Logger.Log("Managed Memory: {0} MB", GC.GetTotalMemory(true) / 1024 / 1024);
-                            for (int g = 0; g <= GC.MaxGeneration; g++)
-                            {
-                                Logger.Log("{0} Generation Count: {1}", g, GC.CollectionCount(g));
-                            }
-
-                        };
-                        while (true)
-                        {
-                            Logger.Log("Sleep 10s.");
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            Logger.Log("----------------------");
-                            Logger.Log("GC collecting...");
-                            showGCInfo();
-                            GC.Collect();
-                            GC.WaitForPendingFinalizers();
-                            GC.WaitForFullGCComplete();
-                            Logger.Log("GC collect finish.");
-                            showGCInfo();
-                        }
-                    });
-                }
-
-                CompilationManager = new CompilationManager(workDir);
-                hookManager = new HookManager();
-
-                codeWatcher = new CodeWatcher(workDir);
-                codeWatcher.FirstAction += FirstCompile;
-                codeWatcher.OnCodeChanged += OnCodeChanged;
-            }
-            catch (Exception e)
-            {
-                Logger.PrintException(e);
-            }
         }
 
         internal Task Start()
