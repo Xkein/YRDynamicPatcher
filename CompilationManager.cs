@@ -205,8 +205,15 @@ namespace DynamicPatcher
             {
                 var hintPathElement = reference.GetElementsByTagName("HintPath");
                 string hintPath = hintPathElement.Count > 0 ? Path.Combine(projectDirectory, hintPathElement[0].InnerText) : Helpers.GetAssemblyPath(reference.GetAttribute("Include") + ".dll");
-                MetadataReference metadata = MetadataReference.CreateFromFile(hintPath);
-                metadataReferences.Add(metadata);
+                if (File.Exists(hintPath))
+                {
+                    MetadataReference metadata = MetadataReference.CreateFromFile(hintPath);
+                    metadataReferences.Add(metadata);
+                }
+                else
+                {
+                    Logger.LogError("reference {0} not found!", reference.GetAttribute("Include"));
+                }
             }
             project = project.WithMetadataReferences(metadataReferences);
 
