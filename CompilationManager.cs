@@ -19,6 +19,8 @@ namespace DynamicPatcher
 {
     class CompilationManager
     {
+        const string CONFIG_NAME = "compiler.config.json";
+
         // for undependent file
         CSharpCompilation compilation;
         List<string> references;
@@ -41,6 +43,7 @@ namespace DynamicPatcher
         Dictionary<Guid, bool> shouldBuildProject;
 
         string workDirectory;
+        DateTime configWriteTime;
 
         public CompilationManager(string workDir)
         {
@@ -112,7 +115,8 @@ namespace DynamicPatcher
 
         private void LoadConfig(string workDir)
         {
-            StreamReader file = File.OpenText(Path.Combine(workDir, "compiler.config.json"));
+            string configPath = Path.Combine(workDir, CONFIG_NAME);
+            StreamReader file = File.OpenText(configPath);
             JsonTextReader reader = new JsonTextReader(file);
             JObject json = JObject.Load(reader);
             var configs = json;
@@ -135,6 +139,8 @@ namespace DynamicPatcher
             forceCompile = configs["force_compile"].ToObject<bool>();
             packAssembly = configs["pack_assembly"].ToObject<bool>();
             optimizationLevel = configs["optimization_level"].ToObject<OptimizationLevel>();
+
+            configWriteTime = new FileInfo(configPath).LastWriteTime;
         }
 
         private void LoadSolution(string path)
@@ -357,16 +363,22 @@ namespace DynamicPatcher
                 {
                     FileInfo codeInfo = new FileInfo(path);
                     FileInfo outputInfo = new FileInfo(outputPath);
+                    DateTime buildTime = outputInfo.LastWriteTime;
 
-                    if (codeInfo.LastWriteTime > outputInfo.LastWriteTime)
+                    if (codeInfo.LastWriteTime > buildTime)
                     {
                         codeChanged = true;
+                    }
+                    else if (configWriteTime > buildTime)
+                    {
+                        codeChanged = true;
+                        Logger.Log("{0} changed.", CONFIG_NAME);
                     }
                     else if (compilation.References.Count() > 0)
                     {
                         foreach (FileInfo fileChanged in compilation.References.
                                                             Select(r => new FileInfo(r.Display)).
-                                                            Where(f => f.LastWriteTime > outputInfo.LastWriteTime))
+                                                            Where(f => f.LastWriteTime > buildTime))
                         {
                             codeChanged = true;
                             Logger.Log("{0} changed.", fileChanged.FullName);
@@ -473,6 +485,11 @@ namespace DynamicPatcher
                         codeChanged = true;
                         Logger.Log("{0} changed.", projectChanged.FilePath);
                     }
+                }
+                else if (configWriteTime > buildTime)
+                {
+                    codeChanged = true;
+                    Logger.Log("{0} changed.", CONFIG_NAME);
                 }
                 else if (project.MetadataReferences.Count() > 0)
                 {
