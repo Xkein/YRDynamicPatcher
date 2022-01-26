@@ -169,7 +169,7 @@ namespace DynamicPatcher
                         string projectGuid = match.Groups[3].Value;
                         Guid guid = Guid.Parse(projectGuid);
 
-                        LoadProject(projectName, projectPath, ProjectId.CreateFromSerialized(guid));
+                        AddProject(projectName, projectPath, ProjectId.CreateFromSerialized(guid));
                         shouldBuildProject[guid] = false;
                     }
                     else if (line.Contains(".Build.0"))
@@ -186,18 +186,37 @@ namespace DynamicPatcher
                 }
             }
 
+            foreach (var id in solution.ProjectIds)
+            {
+                LoadProject(solution.GetProject(id));
+            }
+
             Logger.Log("");
         }
 
-        private void LoadProject(string name, string path, ProjectId projectId)
+        public void AddProject(string name, string path, ProjectId projectId)
         {
-            Logger.Log("loading project: " + path);
+            Logger.Log("add project: " + path);
 
             string projectDirectory = Path.GetDirectoryName(path);
 
             VersionStamp version = VersionStamp.Create();
             ProjectInfo projectInfo = ProjectInfo.Create(projectId, version, name, name, LanguageNames.CSharp, filePath: path, compilationOptions: compilationOptions);
             Project project = workspace.AddProject(projectInfo);
+
+            workspace.TryApplyChanges(project.Solution);
+            solution = workspace.CurrentSolution;
+
+            string buildPath = GetOutputPath(projectDirectory);
+            Helpers.AdditionalSearchPath.Add(buildPath);
+        }
+
+        private void LoadProject(Project project)
+        {
+            string path = project.FilePath;
+            Logger.Log("loading project: " + path);
+
+            string projectDirectory = Path.GetDirectoryName(path);
 
             XmlDocument doc = new XmlDocument();
             doc.Load(path);
@@ -247,12 +266,8 @@ namespace DynamicPatcher
                 }
             }
 
-
             workspace.TryApplyChanges(project.Solution);
             solution = workspace.CurrentSolution;
-
-            string buildPath = GetOutputPath(projectDirectory);
-            Helpers.AdditionalSearchPath.Add(buildPath);
         }
 
         private void ShowCompilerConfig()
