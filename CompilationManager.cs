@@ -401,6 +401,7 @@ namespace DynamicPatcher
                     {
                         Logger.LogError("compiler error!");
                         Logger.Log("");
+                        File.Delete(outputPath);
                         return null;
                     }
 
@@ -516,6 +517,7 @@ namespace DynamicPatcher
                 {
                     Logger.LogError("compiler error!");
                     Logger.Log("");
+                    File.Delete(outputPath);
                     return null;
                 }
 
