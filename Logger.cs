@@ -42,9 +42,9 @@ namespace DynamicPatcher
         {
             HasException = true;
 
-            Logger.Log("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+            Logger.LogWithColor("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", ConsoleColor.DarkRed);
             PrintExceptionBase(e);
-            Logger.Log("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+            Logger.LogWithColor("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<", ConsoleColor.DarkRed);
         }
 
         private static void PrintExceptionBase(Exception e)
@@ -59,14 +59,14 @@ namespace DynamicPatcher
             {
                 foreach (var le in rtle.LoaderExceptions)
                 {
-                    Logger.Log("--------------------------------------------------------");
+                    Logger.LogWithColor("--------------------------------------------------------", ConsoleColor.DarkRed);
                     PrintExceptionBase(le);
                 }
             }
 
             if (e.InnerException != null)
             {
-                Logger.Log("--------------------------------------------------------");
+                Logger.LogWithColor("--------------------------------------------------------", ConsoleColor.DarkRed);
                 PrintExceptionBase(e.InnerException);
             }
         }

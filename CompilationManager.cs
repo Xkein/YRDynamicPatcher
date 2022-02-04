@@ -349,12 +349,22 @@ namespace DynamicPatcher
             Logger.Log("Diagnostics: ");
             foreach (Diagnostic diagnostic in diagnostics)
             {
-                if (showHidden == false && diagnostic.Severity == DiagnosticSeverity.Hidden)
+                switch (diagnostic.Severity)
                 {
-                    continue;
+                    case DiagnosticSeverity.Warning:
+                        Logger.LogWithColor(diagnostic.ToString(), ConsoleColor.Yellow);
+                        continue;
+                    case DiagnosticSeverity.Error:
+                        Logger.LogWithColor(diagnostic.ToString(), ConsoleColor.Red);
+                        continue;
+                    case DiagnosticSeverity.Hidden:
+                        if (showHidden == false)
+                            continue;
+                        goto default;
+                    default:
+                        Logger.Log(diagnostic.ToString());
+                        break;
                 }
-
-                Logger.Log(diagnostic.ToString());
             }
             Logger.Log("");
         }
