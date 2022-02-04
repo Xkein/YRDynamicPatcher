@@ -96,18 +96,19 @@ namespace DynamicPatcher
                 }
             }
 
-            string variable = Environment.GetEnvironmentVariable("Path");
-            string[] dirs = variable.Split(';');
+            // IGNORE REASON: avoid loading dll from unity's plasticSCM that make version crash
+            //string variable = Environment.GetEnvironmentVariable("Path");
+            //string[] dirs = variable.Split(';');
 
-            foreach (string dir in dirs)
-            {
-                fullPath = Path.Combine(dir, fileName);
-                // found in environment variable directory
-                if (File.Exists(fullPath))
-                {
-                    return fullPath;
-                }
-            }
+            //foreach (string dir in dirs)
+            //{
+            //    fullPath = Path.Combine(dir, fileName);
+            //    // found in environment variable directory
+            //    if (File.Exists(fullPath))
+            //    {
+            //        return fullPath;
+            //    }
+            //}
 
             return null;
         }
