@@ -1,3 +1,3 @@
 [submodule "Sample/DynamicPatcher"]
 	path = Sample/DynamicPatcher
-	url = git@github.com:Xkein/PatcherSample.git
+	url = https://github.com/Xkein/PatcherSample.git
