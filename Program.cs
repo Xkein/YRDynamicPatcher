@@ -84,8 +84,8 @@ namespace DynamicPatcher
 
             AssemblyName assemblyName = new AssemblyName(args.Name);
             string fileName = assemblyName.Name + ".dll";// Console.WriteLine("try loading assembly: " + args.Name);
-            string[] files = Directory.GetFiles(librariesDirectory, fileName, SearchOption.AllDirectories);
-            if (files.Length > 0 && TryLoad(Path.Combine(librariesDirectory, files[0])))
+            string filePath = Helpers.SearchFileInDirectory(librariesDirectory, fileName);
+            if (!string.IsNullOrEmpty(filePath) && TryLoad(filePath))
             {
                 return assembly;
             }
@@ -95,7 +95,11 @@ namespace DynamicPatcher
                 return assembly;
             }
 
-            return null;
+            // TOCHECK
+            Assembly[] loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+            assembly = loadedAssemblies.LastOrDefault(a => a.FullName == assemblyName.FullName);
+
+            return assembly;
         }
 
         private static void LoadLibraries(string workDir)
