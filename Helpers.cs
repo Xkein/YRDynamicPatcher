@@ -78,9 +78,10 @@ namespace DynamicPatcher
                 return fullPath;
             }
 
-            string directory = RuntimeEnvironment.GetRuntimeDirectory();
-            fullPath = Path.Combine(directory, fileName);
-            // found in runtime directory
+            string workDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DynamicPatcher");
+            string librariesDirectory = Path.Combine(workDir, "Libraries");
+            fullPath = SearchFileInDirectory(librariesDirectory, fileName);
+            // found in libraries
             if (File.Exists(fullPath))
             {
                 return fullPath;
@@ -94,6 +95,14 @@ namespace DynamicPatcher
                 {
                     return fullPath;
                 }
+            }
+
+            string directory = RuntimeEnvironment.GetRuntimeDirectory();
+            fullPath = SearchFileInDirectory(directory, fileName);
+            // found in runtime directory
+            if (File.Exists(fullPath))
+            {
+                return fullPath;
             }
 
             // IGNORE REASON: avoid loading dll from unity's plasticSCM that make version crash
@@ -111,6 +120,13 @@ namespace DynamicPatcher
             //}
 
             return null;
+        }
+
+        public static string SearchFileInDirectory(string dir, string fileName)
+        {
+            string[] files = Directory.GetFiles(dir, fileName, SearchOption.AllDirectories);
+            string filePath = files.FirstOrDefault();
+            return string.IsNullOrEmpty(filePath) ? string.Empty : Path.Combine(dir, filePath);
         }
 
         public static Assembly GetLoadedAssembly(string name)
