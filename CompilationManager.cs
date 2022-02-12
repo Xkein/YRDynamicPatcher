@@ -99,7 +99,7 @@ namespace DynamicPatcher
                 string path = Helpers.GetAssemblyPath(reference);
                 if (string.IsNullOrEmpty(path))
                 {
-                    Logger.Log("could not find reference:" + reference);
+                    Logger.LogWarning("could not find reference: " + reference);
                     continue;
                 }
                 MetadataReference metadata = MetadataReference.CreateFromFile(path);
