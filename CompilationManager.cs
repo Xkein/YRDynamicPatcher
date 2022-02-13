@@ -497,10 +497,16 @@ namespace DynamicPatcher
             {
                 DateTime newest = project.Documents.Select(document => new FileInfo(document.FilePath)).Max(code => code.LastWriteTime);
                 DateTime buildTime = GetProjectBuildTime(project);
+                DateTime projectModifiedTime = File.GetLastWriteTime(project.FilePath);
 
                 if (newest > buildTime)
                 {
                     codeChanged = true;
+                }
+                else if (projectModifiedTime > buildTime)
+                {
+                    codeChanged = true;
+                    Logger.Log("{0} changed.", project.FilePath);
                 }
                 else if (project.ProjectReferences.Count() > 0)
                 {
