@@ -76,6 +76,7 @@
     <Compile Include="Helpers.cs" />
     <Compile Include="Logo.cs" />
     <Compile Include="MemoryHandle.cs" />
+    <Compile Include="NativeDll.cs" />
     <Compile Include="PackageManager.cs" />
     <Compile Include="Patcher.cs" />
     <Compile Include="Program.cs" />

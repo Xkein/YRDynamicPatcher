@@ -42,6 +42,8 @@ namespace DynamicPatcher
     /// <summary>The class of DynamicPatcher.</summary>
     public class Patcher
     {
+        /// <summary>Work directory of DynamicPatcher. </summary>
+        public string WorkDirectory { get; private set; }
         private CompilationManager CompilationManager { get; set; }
 
         /// <summary>The map of 'filename -> assembly'.</summary>
@@ -74,6 +76,8 @@ namespace DynamicPatcher
 
         internal void Init(string workDir)
         {
+            WorkDirectory = workDir;
+
             string logFileName = Path.Combine(workDir, "patcher.log");
             CreateLogFile(logFileName);
             DateTime date = DateTime.Now;

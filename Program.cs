@@ -35,8 +35,7 @@ namespace DynamicPatcher
             {
                 string workDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DynamicPatcher");
                 librariesDirectory = Path.Combine(workDir, "Libraries");
-                AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
-                //AppDomain.CurrentDomain.AssemblyLoad += CurrentDomain_AssemblyLoad;
+                AddDllDirectories();
 
                 Patcher = new Patcher();
                 Patcher.Init(workDir);
@@ -111,6 +110,19 @@ namespace DynamicPatcher
             foreach (FileInfo file in files)
             {
                 Assembly.LoadFile(file.FullName);
+            }
+        }
+
+        private static void AddDllDirectories()
+        {
+            AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
+            //AppDomain.CurrentDomain.AssemblyLoad += CurrentDomain_AssemblyLoad;
+
+            List<string> dirs = Directory.GetDirectories(librariesDirectory, "*", SearchOption.AllDirectories).ToList();
+            dirs.Add(librariesDirectory);
+            foreach (var dir in dirs)
+            {
+                NativeDll.AddDllDirectory(dir);
             }
         }
     }
