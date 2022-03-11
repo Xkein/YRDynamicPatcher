@@ -203,8 +203,15 @@ namespace DynamicPatcher
                                 Logger.Log("remove hook: " + info.Member.Name);
                                 if (transferStations[key].HookInfos.Count > 0)
                                 {
-                                    info = transferStations[key].HookInfos.First(cur => cur.Member == member && cur.TransferStation == transferStations[key]);
-                                    transferStations[key].UnHook(info);
+                                    info = transferStations[key].HookInfos.FirstOrDefault(cur => cur.Member == member && cur.TransferStation == transferStations[key]);
+                                    if (info != null)
+                                    {
+                                        transferStations[key].UnHook(info);
+                                    }
+                                    else
+                                    {
+                                        Logger.LogError("remove error! TransferStation does not contain hook {0}!", member.Name);
+                                    }
                                 }
                                 else
                                 {
