@@ -6,6 +6,20 @@ using System.Threading.Tasks;
 
 namespace DynamicPatcher
 {
+	/// <summary>The exception indicate that a hook can not mix with other hook.</summary>
+	public class HookCanNotMixedException : InvalidOperationException
+	{
+		internal HookCanNotMixedException(HookInfo info, HookTransferStation station)
+			: base(string.Format("hook {0} can not mix with hooks: [{1}]", info.Member.Name,
+					string.Join(", ", station.HookInfos.Select(item => item.Member.Name))))
+		{
+			Info = info;
+			Station = station;
+		}
+		HookInfo Info { get; }
+		HookTransferStation Station { get; }
+	}
+
 	abstract class HookTransferStation : IDisposable
 	{
 		public LinkedList<HookInfo> HookInfos { get; set; } = new LinkedList<HookInfo>();
@@ -98,7 +112,7 @@ namespace DynamicPatcher
 		{
 			if (HookInfos.Count > 0)
 			{
-				throw new InvalidOperationException("JumpHook can not mix with other hook");
+				throw new HookCanNotMixedException(info, this);
 			}
 
 			base.SetHook(info);
@@ -235,7 +249,7 @@ namespace DynamicPatcher
 		{
 			if (HookInfos.Count > 0)
 			{
-				throw new InvalidOperationException("WriteBytesHook can not mix with other hook");
+				throw new HookCanNotMixedException(info, this);
 			}
 
 			base.SetHook(info);
