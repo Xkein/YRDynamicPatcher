@@ -118,6 +118,8 @@ namespace DynamicPatcher
             AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
             //AppDomain.CurrentDomain.AssemblyLoad += CurrentDomain_AssemblyLoad;
 
+            //NativeDll.EnableDllDirectories();
+
             List<string> dirs = Directory.GetDirectories(librariesDirectory, "*", SearchOption.AllDirectories).ToList();
             dirs.Add(librariesDirectory);
             foreach (var dir in dirs)
