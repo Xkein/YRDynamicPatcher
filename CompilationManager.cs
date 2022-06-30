@@ -17,6 +17,7 @@ using Newtonsoft.Json.Linq;
 
 namespace DynamicPatcher
 {
+#if DEVMODE
     class CompilationManager
     {
         const string CONFIG_NAME = "compiler.config.json";
@@ -63,14 +64,14 @@ namespace DynamicPatcher
 
             var dirInfo = new DirectoryInfo(workDir);
             var dirList = dirInfo.GetDirectories("*.*", SearchOption.AllDirectories).ToList();
-            var solutionlist = dirInfo.GetFiles("*.sln", SearchOption.AllDirectories).ToList();
+            var solutionList = dirInfo.GetFiles("*.sln", SearchOption.AllDirectories).ToList();
 
-            if (solutionlist.Count >= 0)
+            if (solutionList.Count >= 0)
             {
                 workspace = new AdhocWorkspace();
                 shouldBuildProject = new Dictionary<Guid, bool>();
 
-                LoadSolution(solutionlist[0].FullName);
+                LoadSolution(solutionList[0].FullName);
 
                 //foreach (WorkspaceDiagnostic diagnostic in workspace)
                 //{
@@ -116,8 +117,8 @@ namespace DynamicPatcher
         private void LoadConfig(string workDir)
         {
             string configPath = Path.Combine(workDir, CONFIG_NAME);
-            StreamReader file = File.OpenText(configPath);
-            JsonTextReader reader = new JsonTextReader(file);
+            using StreamReader file = File.OpenText(configPath);
+            using JsonTextReader reader = new JsonTextReader(file);
             JObject json = JObject.Load(reader);
             var configs = json;
 
@@ -266,6 +267,21 @@ namespace DynamicPatcher
                 }
             }
 
+
+            HashSet<string> definedSymbols = new HashSet<string>();
+            CSharpParseOptions projectParseOptions = new CSharpParseOptions();
+            foreach (XmlElement constants in doc.SelectNodes(@"ms:Project/ms:PropertyGroup/ms:DefineConstants", nsmgr))
+            {
+                string[] symbols = constants.InnerText.Split(';').ToArray();
+                foreach (string symbol in symbols)
+                {
+                    definedSymbols.Add(symbol);
+                }
+            }
+
+            projectParseOptions = projectParseOptions.WithPreprocessorSymbols(definedSymbols);
+            project = project.WithParseOptions(projectParseOptions);
+
             workspace.TryApplyChanges(project.Solution);
             solution = workspace.CurrentSolution;
         }
@@ -376,7 +392,7 @@ namespace DynamicPatcher
             using (FileStream file = File.OpenRead(path))
             {
                 string outputPath = GetOutputPath(Path.ChangeExtension(path, "tmp"));
-#if DEVMODE
+
                 SourceText source = SourceText.From(file);
                 SyntaxTree tree = CSharpSyntaxTree.ParseText(source, options: parseOptions, path);
 
@@ -451,14 +467,10 @@ namespace DynamicPatcher
                     Assembly assembly_in_memory = Assembly.Load(memory.ToArray());
                     return assembly_in_memory;
                 }
-#endif
+
                 if (packAssembly)
                 {
-#if DEVMODE
                     packageManager.Pack(outputPath);
-#else
-                    packageManager.UnPack(outputPath);
-#endif
                 }
 
                 Assembly assembly = Assembly.LoadFrom(outputPath);
@@ -489,7 +501,7 @@ namespace DynamicPatcher
             Logger.Log("compiling project: " + project.FilePath);
 
             string outputPath = GetOutputPath(Path.ChangeExtension(project.FilePath, "dll"));
-#if DEVMODE
+
             Compilation projectCompilation = project.GetCompilationAsync().Result;
 
             bool codeChanged = false;
@@ -561,18 +573,15 @@ namespace DynamicPatcher
                 Logger.Log("code is older than assembly, use old assembly.");
                 Logger.Log("");
             }
-#endif
+
             if (packAssembly)
             {
-#if DEVMODE
                 packageManager.Pack(outputPath);
-#else
-                packageManager.UnPack(outputPath);
-#endif
             }
 
             Assembly assembly = Assembly.LoadFrom(outputPath);
             return assembly;
         }
     }
+#endif
 }
