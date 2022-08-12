@@ -81,10 +81,12 @@ namespace DynamicPatcher
             WorkDirectory = workDir;
 
             string logFileName = Path.Combine(workDir, "patcher.log");
+            string backupFileName = BackupLogFile(workDir, logFileName);
             CreateLogFile(logFileName);
-            DateTime date = DateTime.Now;
-            logFileName = Path.Combine(workDir, "Logs", string.Format("patcher_{0}_{1}_{2}_{3}_{4}.log", date.Year, date.Month, date.Day, date.Hour, date.Minute));
-            CreateLogFile(logFileName);
+
+            //DateTime date = DateTime.Now;
+            //logFileName = Path.Combine(workDir, "Logs", string.Format("patcher_{0}_{1}_{2}_{3}_{4}.log", date.Year, date.Month, date.Day, date.Hour, date.Minute));
+            //CreateLogFile(logFileName);
 
             AddExceptionHandler(workDir, logFileName);
 
@@ -99,6 +101,12 @@ namespace DynamicPatcher
             Logger.Log("initializing CompilationManager...");
             CompilationManager = new CompilationManager(workDir);
 #endif
+
+            if (!CompilationManager.CopyLogFiles)
+            {
+                File.Delete(backupFileName);
+            }
+
             Logger.Log("initializing HookManager...");
             hookManager = new HookManager();
 
@@ -201,6 +209,19 @@ namespace DynamicPatcher
             {
                 logFileWriter.WriteLine(str);
             };
+        }
+
+        private static string BackupLogFile(string workDir, string logFileName)
+        {
+            if (File.Exists(logFileName))
+            {
+                FileInfo fileInfo = new FileInfo(logFileName);
+                string backupFileName = Path.Combine(workDir, "Logs", string.Format("patcher_{0}.log", fileInfo.LastWriteTime.ToString("yyyy_MM_dd_HHmm")));
+                Directory.CreateDirectory(Path.GetDirectoryName(backupFileName));
+                File.Copy(logFileName, backupFileName, true);
+                return backupFileName;
+            }
+            return null;
         }
 
         internal Task Start()

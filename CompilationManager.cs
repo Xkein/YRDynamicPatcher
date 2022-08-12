@@ -22,6 +22,9 @@ namespace DynamicPatcher
     {
         const string CONFIG_NAME = "compiler.config.json";
 
+
+        public bool CopyLogFiles;
+
         // for undependent file
         CSharpCompilation compilation;
         List<string> references;
@@ -33,6 +36,7 @@ namespace DynamicPatcher
         bool forceCompile;
         bool packAssembly;
         OptimizationLevel optimizationLevel;
+
 
         PackageManager packageManager;
 
@@ -140,6 +144,9 @@ namespace DynamicPatcher
             forceCompile = configs["force_compile"].ToObject<bool>();
             packAssembly = configs["pack_assembly"].ToObject<bool>();
             optimizationLevel = configs["optimization_level"].ToObject<OptimizationLevel>();
+
+
+            CopyLogFiles = configs["copy_logs"] == null ? false : configs["copy_logs"].ToObject<bool>();
 
             configWriteTime = new FileInfo(configPath).LastWriteTime;
         }
@@ -307,6 +314,7 @@ namespace DynamicPatcher
             Logger.Log("EmitPDB: " + emitPDB);
             Logger.Log("ForceCompile: " + forceCompile);
             Logger.Log("PackAssembly: " + packAssembly);
+            Logger.Log("CopyLogFiles: " + CopyLogFiles);
             Logger.Log("");
 
             CSharpCompilationOptions compilationOptions = compilation.Options;
