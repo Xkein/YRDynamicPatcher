@@ -56,7 +56,7 @@
     <Compile Include="WindowManager.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\DynamicPatcher.csproj">
+    <ProjectReference Include="..\DynamicPatcher\DynamicPatcher.csproj">
       <Project>{28144c29-e1b4-4de3-93ba-1cfef5bd58de}</Project>
       <Name>DynamicPatcher</Name>
     </ProjectReference>
