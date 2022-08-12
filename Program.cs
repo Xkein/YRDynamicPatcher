@@ -1,7 +1,6 @@
 ﻿using System;
 using System.CodeDom;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -30,38 +29,15 @@ namespace DynamicPatcher
         /// <summary>The instance of DynamicPatcher.</summary>
         public static Patcher Patcher { get; private set; }
 
-        public static bool FindYR(out Process yrProcess)
-        {
-            Process[] processes = Process.GetProcesses();
-            foreach (var process in processes)
-            {
-                if (process.ProcessName.Contains("gamemd"))
-                {
-                    yrProcess = process;
-                    return true;
-                }
-            }
-
-            yrProcess = null;
-            return false;
-        }
-
         static Program()
         {
             try
             {
-                Process yrProcess;
-                while (FindYR(out yrProcess) == false)
-                {
-                    Thread.Sleep(100);
-                }
-
-                WindowManager.SetTopomost(yrProcess.MainWindowHandle);
+                WindowManager.SetTopomost(System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle);
 
                 string workDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DynamicPatcher");
                 librariesDirectory = Path.Combine(workDir, "Libraries");
-                AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
-                //AppDomain.CurrentDomain.AssemblyLoad += CurrentDomain_AssemblyLoad;
+                AddDllDirectories();
 
                 Patcher = new Patcher();
                 Patcher.Init(workDir);
@@ -109,8 +85,8 @@ namespace DynamicPatcher
 
             AssemblyName assemblyName = new AssemblyName(args.Name);
             string fileName = assemblyName.Name + ".dll";// Console.WriteLine("try loading assembly: " + args.Name);
-            string[] files = Directory.GetFiles(librariesDirectory, fileName, SearchOption.AllDirectories);
-            if (files.Length > 0 && TryLoad(Path.Combine(librariesDirectory, files[0])))
+            string filePath = Helpers.SearchFileInDirectory(librariesDirectory, fileName);
+            if (!string.IsNullOrEmpty(filePath) && TryLoad(filePath))
             {
                 return assembly;
             }
@@ -120,7 +96,11 @@ namespace DynamicPatcher
                 return assembly;
             }
 
-            return null;
+            // TOCHECK
+            Assembly[] loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+            assembly = loadedAssemblies.LastOrDefault(a => a.FullName == assemblyName.FullName);
+
+            return assembly;
         }
 
         private static void LoadLibraries(string workDir)

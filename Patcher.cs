@@ -57,6 +57,8 @@ namespace DynamicPatcher
         HookManager hookManager;
         CodeWatcher codeWatcher;
 
+        bool copyLogFiles;
+
         internal Patcher()
         {
             Logger.WriteLine += ConsoleWriteLine;
@@ -102,7 +104,7 @@ namespace DynamicPatcher
             CompilationManager = new CompilationManager(workDir);
 #endif
 
-            if (!CompilationManager.CopyLogFiles)
+            if (!copyLogFiles)
             {
                 File.Delete(backupFileName);
             }
@@ -196,6 +198,9 @@ namespace DynamicPatcher
                     }
                 });
             }
+
+            copyLogFiles = (bool?)json["copy_logs"] ?? false;
+            Logger.Log("CopyLogFiles: " + copyLogFiles);
         }
 
         private static void CreateLogFile(string logFileName)
