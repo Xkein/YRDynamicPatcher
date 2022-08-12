@@ -1,6 +1,7 @@
 ﻿using System;
 using System.CodeDom;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -29,10 +30,34 @@ namespace DynamicPatcher
         /// <summary>The instance of DynamicPatcher.</summary>
         public static Patcher Patcher { get; private set; }
 
+        public static bool FindYR(out Process yrProcess)
+        {
+            Process[] processes = Process.GetProcesses();
+            foreach (var process in processes)
+            {
+                if (process.ProcessName.Contains("gamemd"))
+                {
+                    yrProcess = process;
+                    return true;
+                }
+            }
+
+            yrProcess = null;
+            return false;
+        }
+
         static Program()
         {
             try
             {
+                Process yrProcess;
+                while (FindYR(out yrProcess) == false)
+                {
+                    Thread.Sleep(100);
+                }
+
+                WindowManager.SetTopomost(yrProcess.MainWindowHandle);
+
                 string workDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DynamicPatcher");
                 librariesDirectory = Path.Combine(workDir, "Libraries");
                 AddDllDirectories();

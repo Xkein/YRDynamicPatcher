@@ -57,10 +57,10 @@ namespace PatcherLauncher
                 Thread.Sleep(100);
             }
 
+            WindowManager.SetTopomost(yrProcess.MainWindowHandle);
+
             try
             {
-                //Registration.Register(DynamicPatcher);
-
                 Remote remote = new Remote(yrProcess);
                 remote.LoadLibrary(PatcherLoader);
                 Console.WriteLine();
