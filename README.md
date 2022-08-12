@@ -83,6 +83,8 @@ the file `DynamicPatcher\dynamicpatcher.config.json` explanation:
 
 `hide_console` : hide the console during start-up.
 
+`copy_logs` : backup log files.
+
 
 the file `DynamicPatcher\compiler.config.json` explanation:
 
@@ -164,7 +166,7 @@ namespace PatcherSample
   - Field
   - Property
 
-[DynamicPatcher based Extensions](https://github.com/Xkein/PatcherExtension)
+[DynamicPatcher based Extensions](https://github.com/Xkein/DPExtension-Dionysus)
 --------
 The extension is divided into 2 parts —— dynamic and static.
 
@@ -179,14 +181,6 @@ Dynamic means that you can edit when game running.
   2. Structure Definitions
   3. Managers
   4. ...
-
-
-Sample has some simple feature below:
-- Multi-extension manage
-- Decorators
-- Scripts
-- Update script when recompiling (unsafe)
-- Save & Load
 
 [YRPP](https://github.com/Xkein/PatcherYRpp)
 --------
