@@ -33,7 +33,7 @@ namespace DynamicPatcher
         {
             try
             {
-                WindowManager.SetTopomost(System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle);
+                //WindowManager.SetTopomost(System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle);
 
                 string workDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DynamicPatcher");
                 librariesDirectory = Path.Combine(workDir, "Libraries");

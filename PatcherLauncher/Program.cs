@@ -56,7 +56,7 @@ namespace PatcherLauncher
                 Thread.Sleep(100);
             }
 
-            WindowManager.SetTopomost(yrProcess.MainWindowHandle);
+            //WindowManager.SetTopomost(yrProcess.MainWindowHandle);
 
             try
             {
