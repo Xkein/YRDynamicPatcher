@@ -34,7 +34,7 @@ namespace DynamicPatcher
 
 
     /// <summary>Run class constructor before hook.</summary>
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = true)]
     public sealed class RunClassConstructorFirstAttribute : Attribute
     {
     }
@@ -44,7 +44,9 @@ namespace DynamicPatcher
     {
         /// <summary>Work directory of DynamicPatcher. </summary>
         public string WorkDirectory { get; private set; }
+#if DEVMODE
         private CompilationManager CompilationManager { get; set; }
+#endif
 
         /// <summary>The map of 'filename -> assembly'.</summary>
         public Dictionary<string, Assembly> FileAssembly { get; } = new Dictionary<string, Assembly>();
@@ -95,8 +97,10 @@ namespace DynamicPatcher
             Logger.Log("loading configs...");
             LoadConfig(workDir);
 
+#if DEVMODE
             Logger.Log("initializing CompilationManager...");
             CompilationManager = new CompilationManager(workDir);
+#endif
 
             if (!CompilationManager.CopyLogFiles)
             {
@@ -108,8 +112,12 @@ namespace DynamicPatcher
 
             Logger.Log("initializing CodeWatcher...");
             codeWatcher = new CodeWatcher(workDir);
+#if DEVMODE
             codeWatcher.FirstAction += FirstCompile;
             codeWatcher.OnCodeChanged += OnCodeChanged;
+#else
+            codeWatcher.FirstAction += LoadPackedAssemblies;
+#endif
         }
 
         private void AddExceptionHandler(string workDir, string logFileName)
@@ -218,9 +226,14 @@ namespace DynamicPatcher
 
         internal Task Start()
         {
-            return codeWatcher.StartWatchPath();
+            Task task = codeWatcher.StartWatchPath();
+#if !DEVMODE
+            codeWatcher.Stop();
+#endif
+            return task;
         }
 
+#if DEVMODE
         private bool TryCompile(string path, out Assembly assembly)
         {
             assembly = null;
@@ -318,6 +331,30 @@ namespace DynamicPatcher
                 throw ex;
             }
         }
+#else
+        private void LoadPackedAssemblies(string workDir)
+        {
+            string buildDir = Path.Combine(workDir, "Build");
+            string projectsDir = Path.Combine(workDir, "Build", "Projects");
+
+            var packageManager = new PackageManager(workDir);
+            packageManager.ReadPackedList();
+            foreach (string packed in packageManager.PackedList)
+            {
+                packageManager.UnPack(packed);
+
+                Assembly assembly = Assembly.LoadFrom(packed);
+
+                if (packed.StartsWith(projectsDir))
+                {
+                    continue;
+                }
+
+                string originPath = Path.ChangeExtension(packed.Replace(buildDir, workDir), "cs");
+                RefreshAssembly(originPath, assembly);
+            }
+        }
+#endif
 
         void RefreshAssembly(string path, Assembly assembly)
         {
@@ -358,7 +395,7 @@ namespace DynamicPatcher
             foreach (Type type in types)
             {
                 Logger.Log("in class {0}: ", type.FullName);
-                if (type.IsDefined(typeof(RunClassConstructorFirstAttribute), false))
+                if (type.IsDefined(typeof(RunClassConstructorFirstAttribute), true))
                 {
                     System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(type.TypeHandle);
                 }

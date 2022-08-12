@@ -18,19 +18,14 @@ namespace DynamicPatcher
         /// <summary>Occurs when a code file is created, deleted or changed.</summary>
         public event FileSystemEventHandler OnCodeChanged;
 
-        private List<FileSystemWatcher> watchers = new List<FileSystemWatcher>();
-
-        Dictionary<string, TimeSpan> lastModifications = new Dictionary<string, TimeSpan>();
-        Stopwatch stopwatch = new Stopwatch();
-        string workDir;
-        string filter;
+        private static List<FileSystemWatcher> _watchers = new List<FileSystemWatcher>();
 
         /// <summary>Initializes a new instance of the CodeWatcher class.</summary>
         public CodeWatcher(string path, string filter = "*.cs")
         {
-            workDir = path;
-            this.filter = filter;
-            stopwatch.Start();
+            _workDir = path;
+            _filter = filter;
+            _stopwatch.Start();
         }
 
         /// <summary>Create a thread watching any changes of directory.</summary>
@@ -38,14 +33,14 @@ namespace DynamicPatcher
         {
             Task firstTask = Task.Run(() =>
             {
-                FirstAction?.Invoke(workDir);
+                FirstAction?.Invoke(_workDir);
             });
 
             Task.Run(() =>
             {
-                Logger.Log("{0}: waiting for first action to complete.", Path.Combine(workDir, "**", filter));
+                Logger.Log("{0}: waiting for first action to complete.", Path.Combine(_workDir, "**", _filter));
                 firstTask.Wait();
-                Logger.Log("{0}: first action complete!", Path.Combine(workDir, "**", filter));
+                Logger.Log("{0}: first action complete!", Path.Combine(_workDir, "**", _filter));
 
                 WatchPath();
             });
@@ -53,16 +48,25 @@ namespace DynamicPatcher
             return firstTask;
         }
 
+        public void Stop()
+        {
+            if (_watcher != null)
+            {
+                _watcher.Dispose();
+                _watchers.Remove(_watcher);
+            }
+        }
+
         /// <summary>Watch any changes of directory.</summary>
         private void WatchPath()
         {
-            if (Directory.Exists(workDir) == false)
+            if (Directory.Exists(_workDir) == false)
             {
-                Logger.LogError("direction not exists: " + workDir);
+                Logger.LogError("direction not exists: " + _workDir);
                 return;
             }
 
-            var watcher = new FileSystemWatcher(workDir, filter);
+            var watcher = _watcher = new FileSystemWatcher(_workDir, _filter);
 
             watcher.Created += OnFileChanged;
             watcher.Changed += OnFileChanged;
@@ -71,7 +75,7 @@ namespace DynamicPatcher
             watcher.IncludeSubdirectories = true;
             watcher.EnableRaisingEvents = true;
 
-            watchers.Add(watcher);
+            _watchers.Add(_watcher);
         }
 
         private void OnFileChanged(object sender, FileSystemEventArgs e)
@@ -83,24 +87,30 @@ namespace DynamicPatcher
             }
 
             OnCodeChanged.Invoke(sender, e);
-            lastModifications[path] = stopwatch.Elapsed;
+            _lastModifications[path] = _stopwatch.Elapsed;
         }
 
         private bool IsFileChanged(string path)
         {
-            if (lastModifications.ContainsKey(path))
+            if (_lastModifications.ContainsKey(path))
             {
-                if (stopwatch.Elapsed - lastModifications[path] <= TimeSpan.FromSeconds(3.0))
+                if (_stopwatch.Elapsed - _lastModifications[path] <= TimeSpan.FromSeconds(3.0))
                 {
                     return false;
                 }
-                lastModifications[path] = stopwatch.Elapsed;
+                _lastModifications[path] = _stopwatch.Elapsed;
             }
             else
             {
-                lastModifications.Add(path, stopwatch.Elapsed);
+                _lastModifications.Add(path, _stopwatch.Elapsed);
             }
             return true;
         }
+
+        Dictionary<string, TimeSpan> _lastModifications = new Dictionary<string, TimeSpan>();
+        Stopwatch _stopwatch = new Stopwatch();
+        string _workDir;
+        string _filter;
+        private FileSystemWatcher _watcher;
     }
 }

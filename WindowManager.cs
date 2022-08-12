@@ -38,7 +38,7 @@ namespace DynamicPatcher
             SetForegroundWindow(hWnd);
         }
     }
-
+    
     public struct WindowRect
     {
         public int Left;
@@ -47,5 +47,4 @@ namespace DynamicPatcher
         public int Bottom;
     }
 }
-
 

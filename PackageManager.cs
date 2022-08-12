@@ -10,12 +10,12 @@ namespace DynamicPatcher
 {
     class PackageManager
     {
-        string workDirectory;
-
         public PackageManager(string workDir)
         {
             workDirectory = workDir;
         }
+
+        public string[] PackedList => packedAssemblies.ToArray();
 
         private string GetPackagePath(string path)
         {
@@ -57,6 +57,9 @@ namespace DynamicPatcher
                 using CryptoStream cs = new CryptoStream(package, des.CreateEncryptor(), CryptoStreamMode.Write);
                 cs.Write(data, 0, data.Length);
                 cs.FlushFinalBlock();
+
+                packedAssemblies.Add(path);
+                WritePackedList();
             }
         }
 #else
@@ -83,5 +86,24 @@ namespace DynamicPatcher
             }
         }
 #endif
+        string GetPackedListFilePath()
+        {
+            return Path.Combine(workDirectory, "Packages", "packedlist");
+        }
+
+        public void ReadPackedList()
+        {
+            string[] lines = File.ReadAllLines(GetPackedListFilePath());
+            packedAssemblies = lines.ToHashSet();
+        }
+
+        public void WritePackedList()
+        {
+            File.WriteAllLines(GetPackedListFilePath(), packedAssemblies);
+        }
+
+        private HashSet<string> packedAssemblies = new();
+        string workDirectory;
+
     }
 }
