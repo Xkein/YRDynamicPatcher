@@ -104,7 +104,7 @@ namespace DynamicPatcher
             CompilationManager = new CompilationManager(workDir);
 #endif
 
-            if (!copyLogFiles)
+            if (!copyLogFiles && !string.IsNullOrEmpty(backupFileName))
             {
                 File.Delete(backupFileName);
             }

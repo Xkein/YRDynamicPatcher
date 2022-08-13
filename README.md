@@ -50,7 +50,7 @@ Quick Use
 4. Run game by Ares's `Syringe`.
 
 If DynamicPatcher not work, check the below:
-- Runtime [VC++ Redistributable 2015 - 2012 x86](https://aka.ms/vs/17/release/VC_redist.x86.exe) and [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48)
+- Runtime [VC++ Redistributable 2015 - 2022 x86](https://aka.ms/vs/17/release/VC_redist.x86.exe) and [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48)
 - Run as Administrator
 
 Usage
