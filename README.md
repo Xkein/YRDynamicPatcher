@@ -50,7 +50,7 @@ Quick Use
 4. Run game by Ares's `Syringe`.
 
 If DynamicPatcher not work, check the below:
-- Runtime [VC++ Redistributable 2015 - 2019 x86](https://aka.ms/vs/16/release/VC_redist.x86.exe) and [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48)
+- Runtime [VC++ Redistributable 2015 - 2012 x86](https://aka.ms/vs/17/release/VC_redist.x86.exe) and [.NET Framework 4.8](https://dotnet.microsoft.com/download/dotnet-framework/net48)
 - Run as Administrator
 
 Usage
@@ -105,9 +105,10 @@ the file `DynamicPatcher\compiler.config.json` explanation:
 
 Release Mode
 --------
-- Compile or take the DynamicPatcher without DEVMODE.
-- Set `pack_assembly` to true (`DynamicPatcher\Packages` needed).
-- Remove the directory `DynamicPatcher\Build`
+1. Set `pack_assembly` to true and `load_temp_file_in_memory` to false (`DynamicPatcher\Packages` needed).
+2. Run game with Debug mode(DynamicPatcher.dll).
+3. Cleaning: Remove `DynamicPatcher\Build`, `DynamicPatcher\Logs` and `DynamicPatcher\patcher.log`
+4. Use DynamicPatcher_RELEASE.dll instead of DynamicPatcher.dll in release version of your mod
 
 
 Hook
