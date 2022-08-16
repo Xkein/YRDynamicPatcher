@@ -67,7 +67,7 @@ namespace DynamicPatcher
             var dirList = dirInfo.GetDirectories("*.*", SearchOption.AllDirectories).ToList();
             var solutionList = dirInfo.GetFiles("*.sln", SearchOption.AllDirectories).ToList();
 
-            if (solutionList.Count >= 0)
+            if (solutionList.Count > 0)
             {
                 workspace = new AdhocWorkspace();
                 shouldBuildProject = new Dictionary<Guid, bool>();
