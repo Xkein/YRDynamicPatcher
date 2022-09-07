@@ -12,6 +12,8 @@ using System.Reflection;
 using PeNet;
 using System.Linq.Expressions;
 using System.Reflection.Emit;
+using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 
 namespace DynamicPatcher
 {
@@ -129,7 +131,7 @@ namespace DynamicPatcher
             if (string.IsNullOrEmpty(filePath))
             {
                 return string.Empty;
-        }
+            }
 
             if (filePath.Contains(dir))
             {
@@ -258,59 +260,60 @@ namespace DynamicPatcher
         // System.Linq.Expressions.Compiler.AssemblyGen from System.Core.dll
         private sealed class AssemblyGen
         {
+            private static AssemblyGen s_assembly;
+
+            private readonly ModuleBuilder _myModule;
+
+            private int _index;
+
             private static AssemblyGen Assembly
             {
                 get
                 {
-                    if (AssemblyGen._assembly == null)
+                    if (s_assembly == null)
                     {
-                        System.Threading.Interlocked.CompareExchange<AssemblyGen>(ref AssemblyGen._assembly, new AssemblyGen(), null);
+                        Interlocked.CompareExchange(ref s_assembly, new AssemblyGen(), comparand: null);
                     }
-                    return AssemblyGen._assembly;
+                    return s_assembly;
                 }
             }
 
             private AssemblyGen()
             {
-                AssemblyName assemblyName = new AssemblyName("DPSnippets");
-                CustomAttributeBuilder[] assemblyAttributes = new CustomAttributeBuilder[]
-                {
-                new CustomAttributeBuilder(typeof(System.Security.SecurityTransparentAttribute).GetConstructor(Type.EmptyTypes), new object[0])
-                };
-                this._myAssembly = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run, assemblyAttributes);
-                this._myModule = this._myAssembly.DefineDynamicModule(assemblyName.Name, false);
-                this._myAssembly.DefineVersionInfoResource();
+                var name = new AssemblyName("Snippets");
+
+                AssemblyBuilder myAssembly = AssemblyBuilder.DefineDynamicAssembly(name, AssemblyBuilderAccess.Run);
+                _myModule = myAssembly.DefineDynamicModule(name.Name!);
             }
 
-            private TypeBuilder DefineType(string name, Type parent, TypeAttributes attr)
+            private TypeBuilder DefineType(string name, [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] Type parent, TypeAttributes attr)
             {
-                if (name == null)
-                {
-                    throw new ArgumentNullException(nameof(name));
-                }
-                if (parent == null)
-                {
-                    throw new ArgumentNullException(nameof(parent));
-                }
+                ArgumentNullException.ThrowIfNull(name);
+                ArgumentNullException.ThrowIfNull(parent);
 
-                StringBuilder stringBuilder = new StringBuilder(name);
-                int value = System.Threading.Interlocked.Increment(ref this._index);
-                stringBuilder.Append("$");
-                stringBuilder.Append(value);
-                stringBuilder.Replace('+', '_').Replace('[', '_').Replace(']', '_').Replace('*', '_').Replace('&', '_').Replace(',', '_').Replace('\\', '_');
-                name = stringBuilder.ToString();
-                return this._myModule.DefineType(name, attr, parent);
+                StringBuilder sb = new StringBuilder(name);
+
+                int index = Interlocked.Increment(ref _index);
+                sb.Append('$');
+                sb.Append(index);
+
+                // An unhandled Exception: System.Runtime.InteropServices.COMException (0x80131130): Record not found on lookup.
+                // is thrown if there is any of the characters []*&+,\ in the type name and a method defined on the type is called.
+                sb.Replace('+', '_').Replace('[', '_').Replace(']', '_').Replace('*', '_').Replace('&', '_').Replace(',', '_').Replace('\\', '_');
+
+                name = sb.ToString();
+
+                return _myModule.DefineType(name, attr, parent);
             }
 
             internal static TypeBuilder DefineDelegateType(string name)
             {
-                return AssemblyGen.Assembly.DefineType(name, typeof(MulticastDelegate), TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.AutoClass);
+                return Assembly.DefineType(
+                    name,
+                    typeof(MulticastDelegate),
+                    TypeAttributes.Class | TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.AnsiClass | TypeAttributes.AutoClass
+                );
             }
-
-            private static AssemblyGen _assembly;
-            private readonly AssemblyBuilder _myAssembly;
-            private readonly ModuleBuilder _myModule;
-            private int _index;
         }
 
         private static readonly Type[] _DelegateCtorSignature = new Type[]

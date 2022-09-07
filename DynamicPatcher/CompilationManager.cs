@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -17,10 +19,41 @@ using Newtonsoft.Json.Linq;
 
 namespace DynamicPatcher
 {
+    // https://github.com/dotnet/runtime/blob/main/src/libraries/Common/tests/SourceGenerators/RoslynTestUtils.cs
+    // https://github.com/dotnet/runtime/blob/main/src/libraries/System.Text.RegularExpressions/tests/FunctionalTests/RegexGeneratorHelper.netcoreapp.cs
+
 #if DEVMODE
     class CompilationManager
     {
         const string CONFIG_NAME = "compiler.config.json";
+
+
+        static readonly string[] BaseReferences = new[] {
+            Path.GetFileName(typeof(object).Assembly.Location),
+            "netstandard.dll",
+            "System.Runtime.dll"
+        };
+
+        static readonly string[] FrameworkReferences = 
+            Directory.GetFiles(RuntimeEnvironment.GetRuntimeDirectory())
+            .Select(f => Path.GetFileName(f))
+            .Where(f => char.IsUpper(f[0]))
+            .Where(f => f.EndsWith(".dll"))
+            .Where(f => !f.EndsWith(".Native.x86.dll") && !f.EndsWith(".Native.dll"))
+            .Where(f => !f.Contains("API-MS-Win"))
+            .Concat(new[] { "mscorlib.dll", "netstandard.dll" })
+            .ToArray();
+
+        static readonly string[] DesktopReferences =
+            Directory.GetFiles(RuntimeEnvironment.GetRuntimeDirectory().Replace("Microsoft.NETCore.App", "Microsoft.WindowsDesktop.App"))
+            .Select(f => Path.GetFileName(f))
+            .Where(f => char.IsUpper(f[0]))
+            .Where(f => f.EndsWith(".dll"))
+            .ToArray();
+
+        static readonly MetadataReference[] FrameworkMetadataReferences = 
+            FrameworkReferences.Select(m => (MetadataReference)MetadataReference.CreateFromFile(Helpers.GetAssemblyPath(m))).ToArray();
+
 
         // for undependent file
         CSharpCompilation compilation;
@@ -123,10 +156,8 @@ namespace DynamicPatcher
             JObject json = JObject.Load(reader);
             var configs = json;
 
-            this.references = new List<string>();
+            this.references = BaseReferences.ToList();
             this.references.Add("DynamicPatcher.dll");
-            this.references.Add("mscorlib.dll");
-
             var references = configs["references"].ToArray();
             foreach (var token in references)
             {
@@ -224,11 +255,9 @@ namespace DynamicPatcher
             doc.Load(path);
 
             XmlNamespaceManager nsmgr = new XmlNamespaceManager(doc.NameTable);
-            nsmgr.AddNamespace("ms", "http://schemas.microsoft.com/developer/msbuild/2003");
 
-            List<MetadataReference> metadataReferences = new List<MetadataReference>();
-            metadataReferences.Add(MetadataReference.CreateFromFile(Helpers.GetAssemblyPath("mscorlib.dll")));
-            foreach (XmlElement reference in doc.SelectNodes(@"ms:Project/ms:ItemGroup/ms:Reference", nsmgr))
+            List<MetadataReference> metadataReferences = FrameworkMetadataReferences.ToList();
+            foreach (XmlElement reference in doc.SelectNodes(@"Project/ItemGroup/Reference", nsmgr))
             {
                 var hintPathElement = reference.GetElementsByTagName("HintPath");
                 string hintPath = hintPathElement.Count > 0 ? Path.Combine(projectDirectory, hintPathElement[0].InnerText) : Helpers.GetAssemblyPath(reference.GetAttribute("Include") + ".dll");
@@ -245,10 +274,16 @@ namespace DynamicPatcher
             project = project.WithMetadataReferences(metadataReferences);
 
             List<ProjectReference> projectReferences = new List<ProjectReference>();
-            foreach (XmlElement reference in doc.SelectNodes(@"ms:Project/ms:ItemGroup/ms:ProjectReference", nsmgr))
+            foreach (XmlElement reference in doc.SelectNodes(@"Project/ItemGroup/ProjectReference", nsmgr))
             {
-                string referenceProjectPath = reference.GetAttribute("Include");
-                string guid = reference.GetElementsByTagName("Project")[0].InnerText;
+                string referenceProjectPath = Path.GetFullPath(Path.Combine(projectDirectory, reference.GetAttribute("Include")));
+                string guid = solution.Projects.FirstOrDefault(p => p.FilePath == referenceProjectPath)?.Id.Id.ToString("B");
+                if(guid == null)
+                {
+                    Logger.LogError("project not found: {0}", referenceProjectPath);
+                    continue;
+                }
+
                 ProjectId id = ProjectId.CreateFromSerialized(Guid.ParseExact(guid, "B"));
 
                 ProjectReference projectReference = new ProjectReference(id);
@@ -256,9 +291,14 @@ namespace DynamicPatcher
             }
             project = project.WithProjectReferences(projectReferences);
 
-            foreach (XmlElement compile in doc.SelectNodes(@"ms:Project/ms:ItemGroup/ms:Compile", nsmgr))
+            List<FileInfo> fileInfos = new DirectoryInfo(projectDirectory).GetFiles("*.cs", SearchOption.AllDirectories).ToList();
+            foreach (FileInfo info in fileInfos)
             {
-                string documentName = compile.GetAttribute("Include");
+                string documentName = Path.GetRelativePath(projectDirectory, info.FullName);
+
+                if (documentName.StartsWith("obj"))
+                    continue;
+                        
                 string documentPath = Path.Combine(projectDirectory, documentName);
                 using (FileStream file = File.OpenRead(documentPath))
                 {
@@ -268,10 +308,9 @@ namespace DynamicPatcher
                 }
             }
 
-
             HashSet<string> definedSymbols = new HashSet<string>();
             CSharpParseOptions projectParseOptions = new CSharpParseOptions();
-            foreach (XmlElement constants in doc.SelectNodes(@"ms:Project/ms:PropertyGroup/ms:DefineConstants", nsmgr))
+            foreach (XmlElement constants in doc.SelectNodes(@"Project/PropertyGroup/DefineConstants", nsmgr))
             {
                 string[] symbols = constants.InnerText.Split(';').ToArray();
                 foreach (string symbol in symbols)

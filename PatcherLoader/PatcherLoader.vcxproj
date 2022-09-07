@@ -76,12 +76,14 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(ProjectDir)$(Configuration)\</OutDir>
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
-    <LibraryPath>$(SolutionDir)DynamicPatcher\bin\Debug;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)DynamicPatcher\bin\Debug;G:\Works\DynamicPatcher\PatcherLoader\deps\dotnet;$(LibraryPath)</LibraryPath>
+    <IncludePath>G:\Works\DynamicPatcher\PatcherLoader\deps\dotnet;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(ProjectDir)$(Configuration)\</OutDir>
-    <LibraryPath>$(SolutionDir)DynamicPatcher\bin\Release;$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)DynamicPatcher\bin\Release;G:\Works\DynamicPatcher\PatcherLoader\deps\dotnet;$(LibraryPath)</LibraryPath>
+    <IncludePath>G:\Works\DynamicPatcher\PatcherLoader\deps\dotnet;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -99,13 +101,13 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <AdditionalOptions>/Zc:twoPhase- %(AdditionalOptions)</AdditionalOptions>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>mscoree.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>nethost.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -119,7 +121,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -127,7 +129,7 @@
       <OptimizeReferences>false</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>mscoree.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>nethost.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
@@ -166,20 +168,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CLR.cpp" />
-    <ClCompile Include="COM.cpp" />
     <ClCompile Include="dllmain.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DynamicPatcher\DynamicPatcher.csproj">
       <Project>{28144c29-e1b4-4de3-93ba-1cfef5bd58de}</Project>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="CLR.h" />
-    <ClInclude Include="COM.h" />
-    <ClInclude Include="Helpers.h" />
-    <ClInclude Include="Registration.h" />
+    <ProjectReference Include="..\PatcherActivator\PatcherActivator.csproj">
+      <Project>{3319f11e-2e74-4f80-a323-839d76fd7ca0}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

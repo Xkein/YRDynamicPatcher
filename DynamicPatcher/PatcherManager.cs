@@ -11,45 +11,34 @@ using System.Threading.Tasks;
 
 namespace DynamicPatcher
 {
-    /// <summary>Provides activation way for DynamicPatcher.</summary>
-    [ComVisible(true), Guid("531A1F37-EA8F-4E60-975E-11D61EE68702")]
-    public interface IPatcher
-    {
-        /// <summary>Activate Dynamic Patcher.</summary>
-        [DispId(1)]
-        void Activate();
-    }
-
-    /// <summary>The class to activate DynamicPatcher</summary>
-    [ClassInterface(ClassInterfaceType.None)]
-    [ComVisible(true), Guid("4BC759CC-5BB6-4E10-A14E-C813C869CE2F")]
-    [ProgId("DynamicPatcher")]
-    public class Program : IPatcher
+    /// <summary>Dynamic Patcher Manager.</summary>
+    public class PatcherManager
     {
         /// <summary>The instance of DynamicPatcher.</summary>
         public static Patcher Patcher { get; private set; }
 
-        static Program()
+        /// <summary>Initialize Dynamic Patcher.</summary>
+        public static void Init()
         {
             try
             {
-                //WindowManager.SetTopomost(System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle);
-
-                string workDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DynamicPatcher");
+                string workDir = Path.Combine(Environment.CurrentDirectory, "DynamicPatcher");
                 librariesDirectory = Path.Combine(workDir, "Libraries");
                 AddDllDirectories();
 
-                Patcher = new Patcher();
-                Patcher.Init(workDir);
+                var patcher = Patcher = new Patcher();
+                patcher.Init(workDir);
             }
             catch (Exception e)
             {
+                Logger.WriteLine -= Console.WriteLine;
+                Logger.WriteLine += Console.WriteLine;
                 Logger.PrintException(e);
             }
         }
 
         /// <summary>Activate Dynamic Patcher.</summary>
-        public void Activate()
+        public static void Activate()
         {
             try
             {
@@ -85,6 +74,12 @@ namespace DynamicPatcher
 
             AssemblyName assemblyName = new AssemblyName(args.Name);
             string fileName = assemblyName.Name + ".dll";// Console.WriteLine("try loading assembly: " + args.Name);
+
+            if (fileName == "DynamicPatcher.dll")
+            {
+                return Assembly.Load(typeof(PatcherManager).Assembly.FullName);
+            }
+
             string filePath = Helpers.SearchFileInDirectory(librariesDirectory, fileName);
             if (!string.IsNullOrEmpty(filePath) && TryLoad(filePath))
             {

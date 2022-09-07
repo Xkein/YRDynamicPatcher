@@ -69,10 +69,7 @@ namespace PatcherLauncher
                 remote.Invoke("kernel32", "AllocConsole", IntPtr.Zero);
                 Console.WriteLine();
 
-                remote.InvokeAsync(PatcherLoader, "CLR_Init", IntPtr.Zero);
-                Console.WriteLine();
-
-                remote.InvokeAsync(PatcherLoader, "CLR_Load", IntPtr.Zero);
+                remote.InvokeAsync(PatcherLoader, "PatcherLoader_Action", IntPtr.Zero);
                 Console.WriteLine();
 
                 yrProcess.WaitForExit();

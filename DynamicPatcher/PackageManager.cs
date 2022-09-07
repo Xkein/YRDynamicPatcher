@@ -28,13 +28,7 @@ namespace DynamicPatcher
         const string github = "https://github.com/Xkein";
         const string bilibili = "https://space.bilibili.com/84479377/";
 
-        readonly byte[] key = Encoding.Default.GetBytes(github + bilibili);
-
-        public byte[] GetKeyMD5()
-        {
-            MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
-            return md5.ComputeHash(key);
-        }
+        readonly byte[] key = MD5.Create().ComputeHash(Encoding.Default.GetBytes(github + bilibili));
 
 #if DEVMODE
         public void Pack(string path)
@@ -50,8 +44,8 @@ namespace DynamicPatcher
                 Logger.Log("packing {0} into {1}", file.Name, package.Name);
                 Logger.Log("");
 
-                TripleDESCryptoServiceProvider des = new TripleDESCryptoServiceProvider();
-                des.Key = GetKeyMD5();
+                var des = TripleDES.Create();
+                des.Key = key;
                 des.Mode = CipherMode.ECB;
 
                 using CryptoStream cs = new CryptoStream(package, des.CreateEncryptor(), CryptoStreamMode.Write);
@@ -75,9 +69,9 @@ namespace DynamicPatcher
                 
                 Logger.Log("unpacking {0} into {1}", package.Name, output.Name);
                 Logger.Log("");
-
-                TripleDESCryptoServiceProvider des = new TripleDESCryptoServiceProvider();
-                des.Key = GetKeyMD5();
+                
+                var des = TripleDES.Create();
+                des.Key = key;
                 des.Mode = CipherMode.ECB;
 
                 using CryptoStream cs = new CryptoStream(output, des.CreateDecryptor(), CryptoStreamMode.Write);
