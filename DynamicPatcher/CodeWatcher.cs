@@ -48,6 +48,7 @@ namespace DynamicPatcher
             return firstTask;
         }
 
+        /// <summary>Stop watching directory.</summary>
         public void Stop()
         {
             if (_watcher != null)

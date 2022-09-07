@@ -25,7 +25,7 @@ namespace DynamicPatcher
         /// <summary>Write string to logger.</summary>
         static public void Log(string str)
         {
-            WriteLine.Invoke(str);
+            WriteLine?.Invoke(str);
         }
 
         /// <summary>Write object to logger.</summary>

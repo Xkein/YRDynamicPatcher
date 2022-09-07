@@ -61,7 +61,6 @@ namespace DynamicPatcher
 
         internal Patcher()
         {
-            Logger.WriteLine += ConsoleWriteLine;
         }
 
         [DllImport("kernel32.dll")]
@@ -72,8 +71,6 @@ namespace DynamicPatcher
 
         [DllImport("kernel32.dll")]
         private static extern bool FreeConsole();
-
-        void ConsoleWriteLine(string str) => Console.WriteLine(str);
 
         /// <summary>Occurs when an exception is not caught.</summary>
         public event UnhandledExceptionEventHandler ExceptionHandler;
@@ -92,12 +89,10 @@ namespace DynamicPatcher
 
             AddExceptionHandler(workDir, logFileName);
 
-            Logo.ShowLogo();
+            LoadConfig(workDir);
 
             Logger.Log("working directory: " + workDir);
 
-            Logger.Log("loading configs...");
-            LoadConfig(workDir);
 
 #if DEVMODE
             Logger.Log("initializing CompilationManager...");
@@ -151,11 +146,13 @@ namespace DynamicPatcher
             using JsonTextReader reader = new JsonTextReader(file);
             var json = JObject.Load(reader);
 
-            if (json["hide_console"].ToObject<bool>())
+            if (!json["hide_console"].ToObject<bool>())
             {
-                FreeConsole();
-                Logger.WriteLine -= ConsoleWriteLine;
+                AllocConsole();
+                Logger.WriteLine += Console.WriteLine;
             }
+
+            Logo.ShowLogo();
 
             if (json["show_attach_window"].ToObject<bool>())
             {
@@ -310,6 +307,12 @@ namespace DynamicPatcher
 
                 foreach (var file in list)
                 {
+                    if (file.Name.StartsWith(".NET"))
+                    {
+                        Logger.Log("skip compiling {0}", file.FullName);
+                        continue;
+                    }
+
                     string filePath = file.FullName;
                     var project = CompilationManager.GetProjectFromFile(filePath);
                     // skip because already compiled
@@ -322,7 +325,7 @@ namespace DynamicPatcher
                         }
                         else
                         {
-                            Logger.Log("first compile error: " + file.FullName);
+                            Logger.LogError("first compile error: " + file.FullName);
                             Logger.Log("");
                         }
                     }
@@ -333,7 +336,7 @@ namespace DynamicPatcher
             catch (Exception ex)
             {
                 Logger.PrintException(ex);
-                throw ex;
+                throw;
             }
         }
 #else

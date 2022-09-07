@@ -54,7 +54,7 @@ namespace DynamicPatcher
                     catch (Exception e)
                     {
                         Logger.LogError("get process handle error: " + e.Message);
-                        throw e;
+                        throw;
                     }
                 }
             }
@@ -126,7 +126,17 @@ namespace DynamicPatcher
         {
             string[] files = Directory.GetFiles(dir, fileName, SearchOption.AllDirectories);
             string filePath = files.FirstOrDefault();
-            return string.IsNullOrEmpty(filePath) ? string.Empty : Path.Combine(dir, filePath);
+            if (string.IsNullOrEmpty(filePath))
+            {
+                return string.Empty;
+        }
+
+            if (filePath.Contains(dir))
+            {
+                return filePath;
+            }
+
+            return Path.Combine(dir, filePath);
         }
 
         public static Assembly GetLoadedAssembly(string name)
