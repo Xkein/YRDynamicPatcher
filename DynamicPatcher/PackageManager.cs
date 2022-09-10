@@ -17,9 +17,11 @@ namespace DynamicPatcher
 
         public string[] PackedList => packedAssemblies.ToArray();
 
+        private string PackagesDirectory => Path.Combine(workDirectory, "Packages");
+
         private string GetPackagePath(string path)
         {
-            string outputPath = path.Replace(workDirectory, Path.Combine(workDirectory, "Packages"));
+            string outputPath = path.Replace(workDirectory, PackagesDirectory);
             Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
             outputPath = Path.ChangeExtension(outputPath, "pkg");
             return outputPath;
@@ -88,18 +90,35 @@ namespace DynamicPatcher
 #endif
         string GetPackedListFilePath()
         {
-            return Path.Combine(workDirectory, "Packages", "packedlist");
+            return Path.Combine(workDirectory, "Packages", "release.list");
         }
 
         public void ReadPackedList()
         {
-            string[] lines = File.ReadAllLines(GetPackedListFilePath());
-            packedAssemblies = lines.ToHashSet();
+            string mainList = GetPackedListFilePath();
+            string[] lines = File.ReadAllLines(mainList);
+            packedAssemblies = new HashSet<string>(lines);
+
+            // Read additional packed list
+            string[] packedLists = Directory.GetFiles(PackagesDirectory, "*.list");
+            foreach (string list in packedLists)
+            {
+                if(list != mainList)
+                {
+                    lines = File.ReadAllLines(list);
+                    foreach (string line in lines)
+                    {
+                        packedAssemblies.Add(line);
+                    }
+                }
+            }
+
+            packedAssemblies = packedAssemblies.Select(p => p.Replace("{DP_DIR}", workDirectory)).ToHashSet();
         }
 
         public void WritePackedList()
         {
-            File.WriteAllLines(GetPackedListFilePath(), packedAssemblies);
+            File.WriteAllLines(GetPackedListFilePath(), packedAssemblies.Select(p => p.Replace(workDirectory, "{DP_DIR}")));
         }
 
         private HashSet<string> packedAssemblies = new();

@@ -191,6 +191,11 @@ namespace DynamicPatcher
             foreach (var id in solution.ProjectIds)
             {
                 LoadProject(solution.GetProject(id));
+
+                if (!solution.GetProject(id).HasDocuments)
+                {
+                    shouldBuildProject[id.Id] = false;
+                }
             }
 
             Logger.Log("");
@@ -457,6 +462,11 @@ namespace DynamicPatcher
                     Logger.Log("");
                 }
 
+                if (packAssembly)
+                {
+                    packageManager.Pack(outputPath);
+                }
+
                 if (loadTempFileInMemory)
                 {
                     using MemoryStream memory = new MemoryStream();
@@ -467,11 +477,6 @@ namespace DynamicPatcher
 
                     Assembly assembly_in_memory = Assembly.Load(memory.ToArray());
                     return assembly_in_memory;
-                }
-
-                if (packAssembly)
-                {
-                    packageManager.Pack(outputPath);
                 }
 
                 Assembly assembly = Assembly.LoadFrom(outputPath);
