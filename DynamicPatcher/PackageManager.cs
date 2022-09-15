@@ -67,6 +67,7 @@ namespace DynamicPatcher
 #else
         public void UnPack(string outputPath)
         {
+            Directory.CreateDirectory(Path.GetDirectoryName(outputPath));
             using (FileStream output = File.Create(outputPath))
             {
                 using FileStream package = File.OpenRead(GetPackagePath(outputPath));
