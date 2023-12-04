@@ -1,11 +1,11 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.2.32630.192
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DynamicPatcher", "DynamicPatcher\DynamicPatcher.csproj", "{28144C29-E1B4-4DE3-93BA-1CFEF5BD58DE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DynamicPatcher", "DynamicPatcher\DynamicPatcher.csproj", "{28144C29-E1B4-4DE3-93BA-1CFEF5BD58DE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PatcherLauncher", "PatcherLauncher\PatcherLauncher.csproj", "{A487B677-8E11-4802-B2D9-C1D5D53DC069}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PatcherLauncher", "PatcherLauncher\PatcherLauncher.csproj", "{A487B677-8E11-4802-B2D9-C1D5D53DC069}"
 	ProjectSection(ProjectDependencies) = postProject
 		{28144C29-E1B4-4DE3-93BA-1CFEF5BD58DE} = {28144C29-E1B4-4DE3-93BA-1CFEF5BD58DE}
 	EndProjectSection

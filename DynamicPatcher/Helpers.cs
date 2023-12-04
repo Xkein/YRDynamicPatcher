@@ -273,13 +273,14 @@ namespace DynamicPatcher
             private AssemblyGen()
             {
                 AssemblyName assemblyName = new AssemblyName("DPSnippets");
+                assemblyName.Version = new Version(1, 0, 0, 0);
                 CustomAttributeBuilder[] assemblyAttributes = new CustomAttributeBuilder[]
                 {
                 new CustomAttributeBuilder(typeof(System.Security.SecurityTransparentAttribute).GetConstructor(Type.EmptyTypes), new object[0])
                 };
-                this._myAssembly = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run, assemblyAttributes);
-                this._myModule = this._myAssembly.DefineDynamicModule(assemblyName.Name, false);
-                this._myAssembly.DefineVersionInfoResource();
+
+                this._myAssembly = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run, assemblyAttributes);//AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run, assemblyAttributes);
+                this._myModule = this._myAssembly.DefineDynamicModule(assemblyName.Name);
             }
 
             private TypeBuilder DefineType(string name, Type parent, TypeAttributes attr)
